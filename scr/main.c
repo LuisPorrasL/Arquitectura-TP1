@@ -21,7 +21,7 @@ void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio
     }
 }
 
-void imprimir_matriz_memoria_continua(int matriz[], int tamanno){
+void imprimir_matriz_memoria_continua_por_filas(int matriz[], int tamanno){
     for(int indice = 0; indice < (tamanno*tamanno); ++indice){
         if(indice%tamanno == 0){
             printf("\n");
@@ -29,6 +29,16 @@ void imprimir_matriz_memoria_continua(int matriz[], int tamanno){
         printf("%2d", matriz[indice]);
     }
     printf("\n");
+}
+
+void imprimir_matriz_memoria_continua_por_columnas(int matriz[], int tamanno){
+    printf("\n");
+    for(int fila = 0; fila < tamanno; ++fila){
+        for(int columna = fila; columna < (tamanno*tamanno); columna += tamanno){
+            printf("%2d", matriz[columna]);
+        }
+        printf("\n");
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -56,11 +66,12 @@ int main(int argc, char* argv[]) {
 		B = (int*)malloc(sizeof(int)*(n*n));
 
         //Se llenan las matrices A y B con valores aleatorios.
+        //Importante se asume que A es una matrix en memoria continua almacenada por filas y que B es una matrix en memoria continua almacenada por columnas.
         llenar_vector_aleatoreamente(A, (n*n), 0, 5);
         llenar_vector_aleatoreamente(B, (n*n), 0, 2);
 
-        imprimir_matriz_memoria_continua(A, n);
-        imprimir_matriz_memoria_continua(B, n);
+        imprimir_matriz_memoria_continua_por_filas(A, n);
+        imprimir_matriz_memoria_continua_por_columnas(B, n);
     }
 
 
