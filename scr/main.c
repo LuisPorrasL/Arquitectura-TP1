@@ -41,8 +41,16 @@ void imprimir_matriz_cuadrada_memoria_continua_por_columnas(int matriz[], int ta
     }
 }
 
+void imprimir_filas_matriz_cuadrada_memoria_continua_por_filas(int filas[], int numero_filas, int tamanno, FILE* archivo){
+    for(int indice = 0; indice < (numero_filas*tamanno); ++indice){
+        if(indice%tamanno == 0) fprintf(archivo, "\n");
+        fprintf(archivo,"%2d", filas[indice]);
+    }
+    fprintf(archivo, "\n");
+}
+
 int main(int argc, char* argv[]) {
-    int *A, *B, *M;
+    int *A, *B, *M, *parte_A, *parte_M;
     int n, cantidad_procesos, proceso_id, tamanno_nombre_procesador;
     char nombre_procesador[MPI_MAX_PROCESSOR_NAME];
 
@@ -80,11 +88,14 @@ int main(int argc, char* argv[]) {
     if(proceso_id != ROOT) B = (int*)malloc(sizeof(int)*(n*n));
     MPI_Bcast(B, (n*n), MPI_INT, ROOT, MPI_COMM_WORLD);
     // A ya que solo se ocupan sus filas, se va a repartir sus filas entre los procesos, para así paralelisar el calculo de M.
-
+    int tamanno_parte_A = (n/cantidad_procesos)*n;
+    parte_A = (int*)malloc(sizeof(int)*tamanno_parte_A);
+    MPI_Scatter(A, tamanno_parte_A, MPI_INT, parte_A, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     if(proceso_id != ROOT){
         printf("Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
         imprimir_matriz_cuadrada_memoria_continua_por_filas(B, (n), stdout);
+        imprimir_filas_matriz_cuadrada_memoria_continua_por_filas(parte_A, n/cantidad_procesos, n, stdout);
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
