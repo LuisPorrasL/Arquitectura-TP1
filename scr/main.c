@@ -66,12 +66,11 @@ int main(int argc, char* argv[]) {
 		B = (int*)malloc(sizeof(int)*(n*n));
 
         //Se llenan las matrices A y B con valores aleatorios.
-        //Importante se asume que A es una matrix en memoria continua almacenada por filas y que B es una matrix en memoria continua almacenada por columnas.
         llenar_vector_aleatoreamente(A, (n*n), 0, 5);
         llenar_vector_aleatoreamente(B, (n*n), 0, 2);
 
         imprimir_matriz_memoria_continua_por_filas(A, n);
-        imprimir_matriz_memoria_continua_por_columnas(B, n);
+        imprimir_matriz_memoria_continua_por_filas(B, n);
     }
 
 
