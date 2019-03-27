@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include "mpi.h"
 
+// Constantes:
+int ROOT = 0;
+
 int preguntar_n(int cantidad_procesos){
     int n = 0;
     while(!n){
@@ -21,23 +24,20 @@ void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio
     }
 }
 
-void imprimir_matriz_memoria_continua_por_filas(int matriz[], int tamanno){
+
+void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int tamanno, FILE* archivo){
     for(int indice = 0; indice < (tamanno*tamanno); ++indice){
-        if(indice%tamanno == 0){
-            printf("\n");
-        }
-        printf("%2d", matriz[indice]);
+        if(indice%tamanno == 0) fprintf(archivo, "\n");
+        fprintf(archivo,"%2d", matriz[indice]);
     }
-    printf("\n");
+    fprintf(archivo, "\n");
 }
 
-void imprimir_matriz_memoria_continua_por_columnas(int matriz[], int tamanno){
-    printf("\n");
+void imprimir_matriz_cuadrada_memoria_continua_por_columnas(int matriz[], int tamanno, FILE* archivo){
+    fprintf(archivo, "\n");
     for(int fila = 0; fila < tamanno; ++fila){
-        for(int columna = fila; columna < (tamanno*tamanno); columna += tamanno){
-            printf("%2d", matriz[columna]);
-        }
-        printf("\n");
+        for(int columna = fila; columna < (tamanno*tamanno); columna += tamanno) fprintf(archivo, "%2d", matriz[columna]);
+        fprintf(archivo, "\n");
     }
 }
 
@@ -53,26 +53,40 @@ int main(int argc, char* argv[]) {
     
     
     MPI_Get_processor_name(nombre_procesador,&tamanno_nombre_procesador);
-    fprintf(stdout,"Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
+    printf("Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
     MPI_Barrier(MPI_COMM_WORLD);
 
 
-    if(proceso_id == 0){
+    if(proceso_id == ROOT){
         // Se le pide al usuario el tamaño "n" de las matrices cuadradas A y B.
         n = preguntar_n(cantidad_procesos);
 
-        //Se crean (aloja memoria) las matrices A y B con tamaño nxn.
+        // Se crean (aloja memoria) las matrices A y B con tamaño nxn.
         A = (int*)malloc(sizeof(int)*(n*n));
 		B = (int*)malloc(sizeof(int)*(n*n));
 
-        //Se llenan las matrices A y B con valores aleatorios.
+        // Se llenan las matrices A y B con valores aleatorios.
         llenar_vector_aleatoreamente(A, (n*n), 0, 5);
         llenar_vector_aleatoreamente(B, (n*n), 0, 2);
 
-        imprimir_matriz_memoria_continua_por_filas(A, n);
-        imprimir_matriz_memoria_continua_por_filas(B, n);
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(A, n, stdout);
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(B, n, stdout);
     }
 
+    // Necesito enviar a todos los procesos el valor de n, para que estos puedan reservar la memoria para sus partes de A y B.
+    MPI_Bcast(&n, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+    // Necesito repartir las matrices A y B.
+    // B ya que es de la que se ocupan las columnas se va a repartir completa entre todos los procesos.
+    if(proceso_id != ROOT) B = (int*)malloc(sizeof(int)*(n*n));
+    MPI_Bcast(B, (n*n), MPI_INT, ROOT, MPI_COMM_WORLD);
+    // A ya que solo se ocupan sus filas, se va a repartir sus filas entre los procesos, para así paralelisar el calculo de M.
+
+
+    if(proceso_id != ROOT){
+        printf("Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(B, (n), stdout);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     MPI_Finalize(); // Se termina el ambiente MPI.
     return 0;
