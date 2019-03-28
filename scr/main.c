@@ -19,9 +19,7 @@ int preguntar_n(int cantidad_procesos){
 }
 
 void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio_minimo, int valor_aleatorio_maximo){
-    for(int indice = 0; indice < tamanno; ++indice){
-        vector[indice] = (int)rand() % (valor_aleatorio_maximo + 1 - valor_aleatorio_minimo) + valor_aleatorio_minimo;
-    }
+    for(int indice = 0; indice < tamanno; ++indice)vector[indice] = (int)rand() % (valor_aleatorio_maximo + 1 - valor_aleatorio_minimo) + valor_aleatorio_minimo;
 }
 
 void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int tamanno, FILE* archivo){
@@ -58,9 +56,7 @@ void obtener_columna_matriz_cuadrada_memoria_continual_por_fila(int matriz[], in
 
 int calcular_producto_punto(int vector_a[], int vector_b[], int tamanno){
     int resultado = 0;
-    for(int indice = 0; indice < tamanno; ++indice){
-        resultado += vector_a[indice]*vector_b[indice];
-    }
+    for(int indice = 0; indice < tamanno; ++indice) resultado += vector_a[indice]*vector_b[indice];
     return resultado;
 }
 
