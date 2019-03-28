@@ -5,6 +5,18 @@
 // Constantes:
 int ROOT = 0;
 
+int esPrimo(int numero){
+    
+    int conteoPrimo = 0;
+    int i;
+    
+    for(i=1;i<=numero;i++)
+        if(numero%i==0)
+            conteoPrimo++;
+    return (conteoPrimo==2?1:0);
+}
+
+
 int preguntar_n(int cantidad_procesos){
     int n = 0;
     while(!n){
