@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "mpi.h"
+
 
 // Constantes:
 int ROOT = 0;
@@ -16,6 +18,15 @@ int esPrimo(int numero){
     return (conteoPrimo==2?1:0);
 }
 
+int contarPrimosEnVectorDeEnteros(int vector[], int dimensiones){
+    int indice;
+    int acumuladorPrimos = 0;
+    for (indice = 0; indice < dimensiones; ++ indice){
+        if (esPrimo(vector[indice]))
+            ++ acumuladorPrimos;
+    }
+    return acumuladorPrimos;
+}
 
 int preguntar_n(int cantidad_procesos){
     int n = 0;
@@ -31,6 +42,8 @@ int preguntar_n(int cantidad_procesos){
 }
 
 void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio_minimo, int valor_aleatorio_maximo){
+    time_t t;
+    srand( (unsigned) time (&t));
     for(int indice = 0; indice < tamanno; ++indice)vector[indice] = (int)rand() % (valor_aleatorio_maximo + 1 - valor_aleatorio_minimo) + valor_aleatorio_minimo;
 }
 
@@ -95,6 +108,7 @@ int main(int argc, char* argv[]) {
     int *A, *B, *M, *parte_A, *parte_M;
     int n, cantidad_procesos, proceso_id, tamanno_nombre_procesador;
     char nombre_procesador[MPI_MAX_PROCESSOR_NAME];
+    int tp, myTp = 0; //  Acumulador para el conteo de primos en la matriz M
 
     MPI_Init(&argc, &argv); // Inicializacion del ambiente para MPI.
     MPI_Comm_size(MPI_COMM_WORLD, &cantidad_procesos); // Se le pide al comunicador MPI_COMM_WORLD que almacene en cantidad_procesos el numero de procesos de ese comunicador.
@@ -150,11 +164,23 @@ int main(int argc, char* argv[]) {
     MPI_Gather(parte_M, tamanno_parte_A, MPI_INT, M, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
     if(proceso_id == ROOT)imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, stdout);
 
+    // Se realiza el conteo total de primos en M por cada proceso
+    printf("\n"); 
+    MPI_Barrier(MPI_COMM_WORLD);   
+    myTp = contarPrimosEnVectorDeEnteros(parte_M,tamanno_parte_A);
+    printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
+    // Se realiza el reduce con operacion de suma de los primos que cada proceso conto hacia el proc ROOT
+    MPI_Reduce(&myTp,&tp,1,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
+    if(proceso_id == ROOT) printf("\nEl total de primos de la Matriz M es %d\n",tp);
+
     // Se libera memoria.
     free(B);
     free(M);
     free(parte_A);
     free(parte_M);
+
+    // Solamente el proceso ROOT libera A
+    if(proceso_id == ROOT) free(A);
 
     MPI_Finalize(); // Se termina el ambiente MPI.
     return 0;
