@@ -18,27 +18,21 @@ int esPrimo(int numero){
     return (conteoPrimo==2?1:0);
 }
 
-int contarPrimosEnVectorDeEnteros(int vector[], int dimensiones){
-    int indice;
-    int acumuladorPrimos = 0;
-    for (indice = 0; indice < dimensiones; ++ indice){
-        if (esPrimo(vector[indice]))
-            ++ acumuladorPrimos;
-    }
-    return acumuladorPrimos;
-}
-
-void contarPrimosPorColumnasMatriz(int matriz[],int dimensionesMatrix, int dimensionFila, int vectorResultados[]){
+int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[]){
     int indice;
     int posResultado = 0;
+    int acumuladorPrimos = 0;
     // Primero se limpia el vector de resultados    
-    for (indice = 0; indice < dimensionFila; ++indice) vectorResultados[indice] = 0;
-    // Se recorre y se suman los primos por columna en el vector de resultados
-    for (indice = 0; indice < dimensionesMatrix; ++ indice){
-        if (esPrimo(matriz[indice])) 
-                ++vectorResultados[posResultado];
+    for (indice = 0; indice < dimensionFila; ++indice) vectorConteoColumnas[indice] = 0;
+    // Se recorre y se suman los primos por columna en el vector de resultados y el total de primos
+    for (indice = 0; indice < dimensionesParteM; ++ indice){
+        if (esPrimo(vectorParteM[indice])){
+            ++acumuladorPrimos;
+            ++vectorConteoColumnas[posResultado];           
+        }
         posResultado = (posResultado + 1)% dimensionFila;
-    }        
+    }
+    return acumuladorPrimos;
 }
 
 int preguntar_n(int cantidad_procesos){
@@ -178,26 +172,24 @@ int main(int argc, char* argv[]) {
     MPI_Gather(parte_M, tamanno_parte_A, MPI_INT, M, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
     if(proceso_id == ROOT)imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, stdout);
 
-    // Se realiza el conteo total de primos en M por cada proceso
-    printf("\n"); 
-    MPI_Barrier(MPI_COMM_WORLD);   
-    myTp = contarPrimosEnVectorDeEnteros(parte_M,tamanno_parte_A);
+    // Se realiza el conteo total de primos en M por cada proceso y el conteo por Columna
+    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
+    // Se preparan los vectores
+    if(proceso_id == ROOT)  P = (int*)malloc(sizeof(int)*n); // proceso 0 crea P
+    myP = (int*)malloc(sizeof(int)*n); // todos los procesos crea su P para acumular
+    // Se llama al metodo que hace todo el conteo
+    myTp = contarPrimosTotalesMyPorColumnaM(parte_M,tamanno_parte_A,n,myP);    
     printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
     // Se realiza el reduce con operacion de suma de los primos que cada proceso conto hacia el proc ROOT
     MPI_Reduce(&myTp,&tp,1,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
     if(proceso_id == ROOT) printf("\nEl total de primos de la Matriz M es %d\n",tp);
-
-    // Se realiza el conteo de los primos, pero esta vez por columnas de M segun la parte que tiene cada proc
-    if(proceso_id == ROOT)  P = (int*)malloc(sizeof(int)*n); // proceso 0 crea P
-    myP = (int*)malloc(sizeof(int)*n); // todos los procesos crea su P para acumular
-    // Se realiza el conteo de los primos por columnas
-    contarPrimosPorColumnasMatriz(parte_M,tamanno_parte_A,n,myP);
+    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
     // Se realiza el reduce de los resultados de las sumas
     MPI_Reduce(myP,P,n,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
 
     // Proceso cero imprime
     printf("\n"); 
-    MPI_Barrier(MPI_COMM_WORLD);    
+    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego    
     if (proceso_id == ROOT){
         int y;
         printf("Los primos por columnas en M son:\n");
