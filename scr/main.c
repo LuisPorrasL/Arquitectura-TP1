@@ -110,24 +110,32 @@ void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[],
                 if(indice_proceso == 0){
                     pocisionesInicialesFaltanteSuperior[indice_proceso] = desplazamientoFaltanteSuperior[indice_proceso] = 0;
                     if(cantidad_procesos > 1){
-                        pocisionesInicialesFaltanteInferior[indice_proceso] = (n*n)/cantidad_procesos+1;
+                        pocisionesInicialesFaltanteInferior[indice_proceso] = (n*n)/cantidad_procesos;
                         desplazamientoFaltanteInferior[indice_proceso] = n;
                     }
                     else pocisionesInicialesFaltanteInferior[indice_proceso] = desplazamientoFaltanteInferior[indice_proceso] = 0;
 
                 }
-                else if(cantidad_procesos == cantidad_procesos-1){
-                    pocisionesInicialesFaltanteSuperior[indice_proceso] =   (n*n) - ((n*n)/cantidad_procesos) - n;
+                else if(indice_proceso == (cantidad_procesos-1)){
+                    pocisionesInicialesFaltanteSuperior[indice_proceso] = (n*n) - ((n*n)/cantidad_procesos) - n;
                     desplazamientoFaltanteSuperior[indice_proceso] = n;
-                    pocisionesInicialesFaltanteInferior[indice_proceso] = desplazamientoFaltanteInferior[indice_proceso] = 0;
+                    pocisionesInicialesFaltanteInferior[indice_proceso] = 0;
+                    desplazamientoFaltanteInferior[indice_proceso] = 1;
                 }
                 else{
-                    pocisionesInicialesFaltanteSuperior[indice_proceso] =   (n*n) - ((n*n)/cantidad_procesos) - n;
+                    pocisionesInicialesFaltanteSuperior[indice_proceso] =   indice_proceso*n*cantidad_procesos - n;
                     desplazamientoFaltanteSuperior[indice_proceso] = n;
-                    pocisionesInicialesFaltanteInferior[indice_proceso] = (n*n)/cantidad_procesos+1;
+                    pocisionesInicialesFaltanteInferior[indice_proceso] = (indice_proceso+1)*n*cantidad_procesos;
                     desplazamientoFaltanteInferior[indice_proceso] = n;
                 }
+                
+                printf("PosicionProcesoSup proceso[%d] = %d\n", indice_proceso,  pocisionesInicialesFaltanteSuperior[indice_proceso]);
+                printf("DesplazamientoProcesoSup proceso[%d] = %d\n", indice_proceso,  desplazamientoFaltanteSuperior[indice_proceso]);
+                printf("PosicionProcesoInfe proceso[%d] = %d\n", indice_proceso,  pocisionesInicialesFaltanteInferior[indice_proceso]);
+                printf("DesplazamientoProcesoInfe proceso[%d] = %d\n", indice_proceso,  desplazamientoFaltanteInferior[indice_proceso]);
+                             
             }
+        imprimir_filas_matriz_cuadrada_memoria_continua_por_filas(pocisionesInicialesFaltanteSuperior, 1, n, stdout);
 }
 
 int main(int argc, char* argv[]) {
@@ -230,20 +238,14 @@ int main(int argc, char* argv[]) {
             fprintf(archivo, "P[%d] = %d\n", y, P[y]);
     }
 
-    if(proceso_id == 0){
-        parte_faltante_superior = NULL;
-        if(cantidad_procesos < 2) parte_faltante_inferior = NULL;
-        else parte_faltante_inferior = (int*)malloc(sizeof(int)*n);
-    }
-    else if(proceso_id == cantidad_procesos - 1)parte_faltante_inferior = NULL;
-    else{
-        parte_faltante_superior = (int*)malloc(sizeof(int)*n);
-        parte_faltante_inferior = (int*)malloc(sizeof(int)*n);
-    }
+    parte_faltante_superior = (int*)malloc(sizeof(int)*n);
+    parte_faltante_inferior = (int*)malloc(sizeof(int)*n);
 
+    
+    MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior,n, MPI_INT, ROOT, MPI_COMM_WORLD);
+    MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior,n, MPI_INT, ROOT, MPI_COMM_WORLD);
+    
 
-    MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
-    MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     // Se libera memoria.
     free(B);
