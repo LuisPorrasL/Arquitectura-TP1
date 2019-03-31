@@ -59,15 +59,7 @@ void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int taman
         if(indice%tamanno == 0) fprintf(archivo, "\n");
         fprintf(archivo,"%4d", matriz[indice]);
     }
-    fprintf(archivo, "\n");
-}
-
-void imprimir_matriz_cuadrada_memoria_continua_por_columnas(int matriz[], int tamanno, FILE* archivo){
-    fprintf(archivo, "\n");
-    for(int fila = 0; fila < tamanno; ++fila){
-        for(int columna = fila; columna < (tamanno*tamanno); columna += tamanno) fprintf(archivo, "%4d", matriz[columna]);
-        fprintf(archivo, "\n");
-    }
+    fprintf(archivo, "\n\n");
 }
 
 void imprimir_filas_matriz_cuadrada_memoria_continua_por_filas(int filas[], int numero_filas, int tamanno, FILE* archivo){
@@ -117,6 +109,7 @@ int main(int argc, char* argv[]) {
     char nombre_procesador[MPI_MAX_PROCESSOR_NAME];
     int tp, myTp = 0; //  Acumulador para el conteo de primos en la matriz M
     int* myP, *P; // Vectores para el conteo de los primos por fila
+    FILE* archivo = stdout;
 
     MPI_Init(&argc, &argv); // Inicializacion del ambiente para MPI.
     MPI_Comm_size(MPI_COMM_WORLD, &cantidad_procesos); // Se le pide al comunicador MPI_COMM_WORLD que almacene en cantidad_procesos el numero de procesos de ese comunicador.
@@ -138,8 +131,10 @@ int main(int argc, char* argv[]) {
         llenar_vector_aleatoreamente(A, (n*n), 0, 5);
         llenar_vector_aleatoreamente(B, (n*n), 0, 2);
 
-        imprimir_matriz_cuadrada_memoria_continua_por_filas(A, n, stdout);
-        imprimir_matriz_cuadrada_memoria_continua_por_filas(B, n, stdout);
+        fprintf(archivo, "\nA:\n");
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(A, n, archivo);
+        fprintf(archivo, "\nB:\n");
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(B, n, archivo);
     }
 
     // Necesito enviar a todos los procesos el valor de n, para que estos puedan reservar la memoria para sus partes de A y B.
@@ -170,7 +165,10 @@ int main(int argc, char* argv[]) {
     // Necesito armar la matriz M recuperando las partes calculadas por cada proceso
     M = (int*)malloc(sizeof(int)*(n*n));
     MPI_Gather(parte_M, tamanno_parte_A, MPI_INT, M, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
-    if(proceso_id == ROOT)imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, stdout);
+    if(proceso_id == ROOT){
+        fprintf(archivo, "\nM:\n");
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, archivo);
+    }
 
     // Se realiza el conteo total de primos en M por cada proceso y el conteo por Columna
     MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
@@ -179,22 +177,22 @@ int main(int argc, char* argv[]) {
     myP = (int*)malloc(sizeof(int)*n); // todos los procesos crea su P para acumular
     // Se llama al metodo que hace todo el conteo
     myTp = contarPrimosTotalesMyPorColumnaM(parte_M,tamanno_parte_A,n,myP);    
-    printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
+    //printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
     // Se realiza el reduce con operacion de suma de los primos que cada proceso conto hacia el proc ROOT
     MPI_Reduce(&myTp,&tp,1,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
-    if(proceso_id == ROOT) printf("\nEl total de primos de la Matriz M es %d\n",tp);
+    if(proceso_id == ROOT) fprintf(archivo, "\nEl total de primos de la Matriz M es %d\n",tp);
     MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
     // Se realiza el reduce de los resultados de las sumas
     MPI_Reduce(myP,P,n,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
 
-    // Proceso cero imprime
-    printf("\n"); 
+    // Proceso cero imprime 
     MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego    
     if (proceso_id == ROOT){
+        fprintf(archivo, "\n");
         int y;
-        printf("Los primos por columnas en M son:\n");
+        fprintf(archivo, "Los primos por columnas en M son:\n");
         for (y = 0; y < n; ++ y)
-            printf("P[%d] = %d\n", y, P[y]);
+            fprintf(archivo, "P[%d] = %d\n", y, P[y]);
     }
 
     // Se libera memoria.
