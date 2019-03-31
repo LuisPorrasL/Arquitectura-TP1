@@ -103,8 +103,35 @@ void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int
     free(tmp_col);
 }
 
+void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[], int pocisionesInicialesFaltanteInferior[], 
+    int desplazamientoFaltanteSuperior[], int desplazamientoFaltanteInferior[], int cantidad_procesos, int n){
+    
+        for(int indice_proceso = 0; indice_proceso < cantidad_procesos; ++indice_proceso){
+                if(indice_proceso == 0){
+                    pocisionesInicialesFaltanteSuperior[indice_proceso] = desplazamientoFaltanteSuperior[indice_proceso] = 0;
+                    if(cantidad_procesos > 1){
+                        pocisionesInicialesFaltanteInferior[indice_proceso] = (n*n)/cantidad_procesos+1;
+                        desplazamientoFaltanteInferior[indice_proceso] = n;
+                    }
+                    else pocisionesInicialesFaltanteInferior[indice_proceso] = desplazamientoFaltanteInferior[indice_proceso] = 0;
+
+                }
+                else if(cantidad_procesos == cantidad_procesos-1){
+                    pocisionesInicialesFaltanteSuperior[indice_proceso] =   (n*n) - ((n*n)/cantidad_procesos) - n;
+                    desplazamientoFaltanteSuperior[indice_proceso] = n;
+                    pocisionesInicialesFaltanteInferior[indice_proceso] = desplazamientoFaltanteInferior[indice_proceso] = 0;
+                }
+                else{
+                    pocisionesInicialesFaltanteSuperior[indice_proceso] =   (n*n) - ((n*n)/cantidad_procesos) - n;
+                    desplazamientoFaltanteSuperior[indice_proceso] = n;
+                    pocisionesInicialesFaltanteInferior[indice_proceso] = (n*n)/cantidad_procesos+1;
+                    desplazamientoFaltanteInferior[indice_proceso] = n;
+                }
+            }
+}
+
 int main(int argc, char* argv[]) {
-    int *A, *B, *M, *parte_A, *parte_M;
+    int *A, *B, *M, *parte_A, *parte_M, *C, *parte_C, *parte_faltante_superior, *parte_faltante_inferior;
     int n, cantidad_procesos, proceso_id, tamanno_nombre_procesador;
     char nombre_procesador[MPI_MAX_PROCESSOR_NAME];
     int tp, myTp = 0; //  Acumulador para el conteo de primos en la matriz M
@@ -118,6 +145,11 @@ int main(int argc, char* argv[]) {
     MPI_Get_processor_name(nombre_procesador,&tamanno_nombre_procesador);
     printf("Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
     MPI_Barrier(MPI_COMM_WORLD);
+
+    int *pocisionesInicialesFaltanteSuperior = (int*)malloc(sizeof(int)*cantidad_procesos);
+    int *pocisionesInicialesFaltanteInferior = (int*)malloc(sizeof(int)*cantidad_procesos);
+    int *desplazamientoFaltanteSuperior = (int*)malloc(sizeof(int)*cantidad_procesos);
+    int *desplazamientoFaltanteInferior = (int*)malloc(sizeof(int)*cantidad_procesos);
 
     if(proceso_id == ROOT){
         // Se le pide al usuario el tamaño "n" de las matrices cuadradas A y B.
@@ -135,6 +167,9 @@ int main(int argc, char* argv[]) {
         imprimir_matriz_cuadrada_memoria_continua_por_filas(A, n, archivo);
         fprintf(archivo, "\nB:\n");
         imprimir_matriz_cuadrada_memoria_continua_por_filas(B, n, archivo);
+
+        calcular_reparticion_faltantes_M(pocisionesInicialesFaltanteSuperior, pocisionesInicialesFaltanteInferior, 
+            desplazamientoFaltanteSuperior, desplazamientoFaltanteInferior, cantidad_procesos, n);
     }
 
     // Necesito enviar a todos los procesos el valor de n, para que estos puedan reservar la memoria para sus partes de A y B.
@@ -194,6 +229,21 @@ int main(int argc, char* argv[]) {
         for (y = 0; y < n; ++ y)
             fprintf(archivo, "P[%d] = %d\n", y, P[y]);
     }
+
+    if(proceso_id == 0){
+        parte_faltante_superior = NULL;
+        if(cantidad_procesos < 2) parte_faltante_inferior = NULL;
+        else parte_faltante_inferior = (int*)malloc(sizeof(int)*n);
+    }
+    else if(proceso_id == cantidad_procesos - 1)parte_faltante_inferior = NULL;
+    else{
+        parte_faltante_superior = (int*)malloc(sizeof(int)*n);
+        parte_faltante_inferior = (int*)malloc(sizeof(int)*n);
+    }
+
+
+    MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+    MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     // Se libera memoria.
     free(B);
