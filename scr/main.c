@@ -166,9 +166,9 @@ void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[],
 				desplazamientoFaltanteInferior[indice_proceso] = 0;
 			}
 			else{
-				pocisionesInicialesFaltanteSuperior[indice_proceso] =  desplazamiento*n -n;
+				pocisionesInicialesFaltanteSuperior[indice_proceso] =  (desplazamiento - 1)*n;
 				desplazamientoFaltanteSuperior[indice_proceso] = n;
-				pocisionesInicialesFaltanteInferior[indice_proceso] = (indice_proceso+1)*n*cantidad_procesos;
+				pocisionesInicialesFaltanteInferior[indice_proceso] =  (desplazamiento +filas_por_proceso)*n;
 				desplazamientoFaltanteInferior[indice_proceso] = n;
                 desplazamiento+=filas_por_proceso;
 			}                    
