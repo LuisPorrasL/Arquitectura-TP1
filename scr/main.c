@@ -262,18 +262,6 @@ int main(int argc, char* argv[]) {
 	if(proceso_id == cantidad_procesos-1) MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
 	else MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-    // Impresion revisio
-    if (proceso_id == ROOT){
-        int h;
-        printf("\tPos incial Superior\n\n");
-        for (h = 0; h < cantidad_procesos; ++h)
-            printf("PosProceso[%d]=%d\n",h,pocisionesInicialesFaltanteSuperior[h]);
-        printf("\n\tPos incial Inferior\n\n");
-        for (h = 0; h < cantidad_procesos; ++h)
-            printf("PosProceso[%d]=%d\n",h,pocisionesInicialesFaltanteInferior[h]);
-        
-    }
-
     // Se realiza el conteo total de primos en M por cada proceso y el conteo por Columna
     // Se preparan los vectores
     if(proceso_id == ROOT)  P = (int*)malloc(sizeof(int)*n); // proceso 0 crea P
