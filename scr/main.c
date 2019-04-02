@@ -52,9 +52,7 @@ int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, 
 			vector_inf = &vectorParteM[ indice + dimensionFila - columna_actual ];
 			vector_sub = &vectorParteM[ indice - dimensionFila - columna_actual ];
 		}			
-
-			
-		
+					
     }
     return acumuladorPrimos;
 }
@@ -239,25 +237,7 @@ int main(int argc, char* argv[]) {
         imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, archivo);
     }
 
-    // Se realiza el conteo total de primos en M por cada proceso y el conteo por Columna
-    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
-    // Se preparan los vectores
-    if(proceso_id == ROOT)  P = (int*)malloc(sizeof(int)*n); // proceso 0 crea P
-    myP = (int*)malloc(sizeof(int)*n); // todos los procesos crea su P para acumular
-    // Se llama al metodo que hace todo el conteo
-    myTp = contarPrimosTotalesMyPorColumnaM(parte_M,tamanno_parte_A,n,myP,cantidad_procesos,parte_faltante_superior,parte_faltante_inferior);    
-    //printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
-    // Se realiza el reduce con operacion de suma de los primos que cada proceso conto hacia el proc ROOT
-    MPI_Reduce(&myTp,&tp,1,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
-    if(proceso_id == ROOT) fprintf(archivo, "\nEl total de primos de la Matriz M es %d\n",tp);
-    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
-    // Se realiza el reduce de los resultados de las sumas
-    MPI_Reduce(myP,P,n,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
-
-    // Proceso cero imprime 
-    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
-	if (proceso_id == ROOT) imprimir_primos_por_columna(P, n, archivo);
-
+    // Repartir M
     parte_faltante_superior = (int*)calloc(n, sizeof(int));
     parte_faltante_inferior = (int*)calloc(n, sizeof(int));
 
@@ -265,6 +245,26 @@ int main(int argc, char* argv[]) {
 	else MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
 	if(proceso_id == cantidad_procesos-1) MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
 	else MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+
+    // Se realiza el conteo total de primos en M por cada proceso y el conteo por Columna
+    // Se preparan los vectores
+    if(proceso_id == ROOT)  P = (int*)malloc(sizeof(int)*n); // proceso 0 crea P
+    myP = (int*)malloc(sizeof(int)*n); // todos los procesos crea su P para acumular
+    
+    // Se llama al metodo que hace todo el conteo
+    myTp = contarPrimosTotalesMyPorColumnaM(parte_M,tamanno_parte_A,n,myP,cantidad_procesos,parte_faltante_superior,parte_faltante_inferior);    
+    //printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
+    
+    // Se realiza el reduce con operacion de suma de los primos que cada proceso conto hacia el proc ROOT
+    MPI_Reduce(&myTp,&tp,1,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
+    if(proceso_id == ROOT) fprintf(archivo, "\nEl total de primos de la Matriz M es %d\n",tp);
+    
+    // Se realiza el reduce de los resultados de las sumas
+    MPI_Reduce(myP,P,n,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
+
+    // Proceso cero imprime 
+    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
+	if (proceso_id == ROOT) imprimir_primos_por_columna(P, n, archivo);
 
     // Se libera memoria.
     free(B);
