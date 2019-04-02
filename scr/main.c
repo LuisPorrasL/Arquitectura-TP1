@@ -52,6 +52,7 @@ int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, 
     int acumuladorPrimos = 0;
 	int fila_actual = 0, columna_actual = 0;
 	int *vector_sub, *vector_inf;
+    int movimientos[4];
     // Primero se limpia el vector de resultados    
     for (indice = 0; indice < dimensionFila; ++indice) vectorConteoColumnas[indice] = 0;
     // Se recorre y se suman los primos por columna en el vector de resultados y el total de primos
@@ -147,7 +148,8 @@ void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int
 
 void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[], int pocisionesInicialesFaltanteInferior[], 
     int desplazamientoFaltanteSuperior[], int desplazamientoFaltanteInferior[], int cantidad_procesos, int n){
-		int indice_proceso;
+		int indice_proceso, desplazamiento;
+        int filas_por_proceso = desplazamiento = n / cantidad_procesos;
         for(indice_proceso = 0; indice_proceso < cantidad_procesos; ++indice_proceso){
 			if(indice_proceso == 0){
 				pocisionesInicialesFaltanteSuperior[indice_proceso] = desplazamientoFaltanteSuperior[indice_proceso] = 0;
@@ -164,10 +166,11 @@ void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[],
 				desplazamientoFaltanteInferior[indice_proceso] = 0;
 			}
 			else{
-				pocisionesInicialesFaltanteSuperior[indice_proceso] =   indice_proceso*n*cantidad_procesos - n;
+				pocisionesInicialesFaltanteSuperior[indice_proceso] =  desplazamiento*n -n;
 				desplazamientoFaltanteSuperior[indice_proceso] = n;
 				pocisionesInicialesFaltanteInferior[indice_proceso] = (indice_proceso+1)*n*cantidad_procesos;
 				desplazamientoFaltanteInferior[indice_proceso] = n;
+                desplazamiento+=filas_por_proceso;
 			}                    
         }
 }
@@ -258,6 +261,18 @@ int main(int argc, char* argv[]) {
 	else MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
 	if(proceso_id == cantidad_procesos-1) MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
 	else MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+
+    // Impresion revisio
+    if (proceso_id == ROOT){
+        int h;
+        printf("\tPos incial Superior\n\n");
+        for (h = 0; h < cantidad_procesos; ++h)
+            printf("PosProceso[%d]=%d\n",h,pocisionesInicialesFaltanteSuperior[h]);
+        printf("\n\tPos incial Inferior\n\n");
+        for (h = 0; h < cantidad_procesos; ++h)
+            printf("PosProceso[%d]=%d\n",h,pocisionesInicialesFaltanteInferior[h]);
+        
+    }
 
     // Se realiza el conteo total de primos en M por cada proceso y el conteo por Columna
     // Se preparan los vectores
