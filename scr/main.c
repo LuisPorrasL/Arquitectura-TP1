@@ -15,10 +15,12 @@ int esPrimo(int numero){
     return (conteoPrimo==2?1:0);
 }
 
-int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[]){
+int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[], int cantidad_procesos, int superior[], int inferior[]){
     int indice;
     int posResultado = 0;
     int acumuladorPrimos = 0;
+	int fila_actual = 0, columna_actual = 0;
+	int *vector_sub, *vector_inf;
     // Primero se limpia el vector de resultados    
     for (indice = 0; indice < dimensionFila; ++indice) vectorConteoColumnas[indice] = 0;
     // Se recorre y se suman los primos por columna en el vector de resultados y el total de primos
@@ -28,9 +30,35 @@ int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, 
             ++vectorConteoColumnas[posResultado];           
         }
         posResultado = (posResultado + 1)% dimensionFila;
+		// Se calcula mi parte de C 
+		// Se calcula la fila actual
+		columna_actual = indice % dimensionFila;			
+		// Se calcula la columna actual
+		fila_actual = indice / dimensionFila ;		
+		
+		// Se evaluan los casos		
+		// Estoy en la fila cero
+		if (fila_actual == 0){
+			// Se consigue el inferior que es la siguiente fila
+			vector_inf = &vectorParteM[dimensionFila];
+			vector_sub = superior;
+			
+		// Estoy en la fila (n/p) - 1	
+		}else if (fila_actual == dimensionFila - 1 ){
+			vector_inf = inferior;
+			vector_sub = &vectorParteM[ indice - dimensionFila - columna_actual ];
+			
+		}else{
+			vector_inf = &vectorParteM[ indice + dimensionFila - columna_actual ];
+			vector_sub = &vectorParteM[ indice - dimensionFila - columna_actual ];
+		}			
+
+			
+		
     }
     return acumuladorPrimos;
 }
+
 
 int preguntar_n(int cantidad_procesos){
     int n = 0;
@@ -104,6 +132,7 @@ void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int
     free(tmp_fila);
     free(tmp_col);
 }
+
 
 void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[], int pocisionesInicialesFaltanteInferior[], 
     int desplazamientoFaltanteSuperior[], int desplazamientoFaltanteInferior[], int cantidad_procesos, int n){
@@ -216,7 +245,7 @@ int main(int argc, char* argv[]) {
     if(proceso_id == ROOT)  P = (int*)malloc(sizeof(int)*n); // proceso 0 crea P
     myP = (int*)malloc(sizeof(int)*n); // todos los procesos crea su P para acumular
     // Se llama al metodo que hace todo el conteo
-    myTp = contarPrimosTotalesMyPorColumnaM(parte_M,tamanno_parte_A,n,myP);    
+    myTp = contarPrimosTotalesMyPorColumnaM(parte_M,tamanno_parte_A,n,myP,cantidad_procesos,parte_faltante_superior,parte_faltante_inferior);    
     //printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
     // Se realiza el reduce con operacion de suma de los primos que cada proceso conto hacia el proc ROOT
     MPI_Reduce(&myTp,&tp,1,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
