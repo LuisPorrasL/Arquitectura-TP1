@@ -6,6 +6,11 @@
 
 // Constantes:
 int ROOT = 0;
+int POS_ARRIBA = 0;
+int POS_ABAJO = 1;
+int POS_DERECHA = 2;
+int POS_IZQUIERDA = 3;
+int POS_INVALIDA = -1;
 
 int esPrimo(int numero){
     int conteoPrimo = 0, i;
@@ -14,6 +19,32 @@ int esPrimo(int numero){
             conteoPrimo++;
     return (conteoPrimo==2?1:0);
 }
+
+void obtener_movimientos_matrix_c(int fila, int columna, int n, int indice, int movimientos[]){
+    // Primero se calcula las posiciones de arriba y abajo
+    if ( fila == 0 ){
+        movimientos[ POS_ARRIBA ] = POS_INVALIDA;
+        movimientos[ POS_ABAJO ] = indice + n ;
+    } else if (fila == n - 1 ){
+        movimientos[ POS_ARRIBA ] = indice - n;
+        movimientos[ POS_ABAJO ] = POS_INVALIDA;
+    }else{
+        movimientos[ POS_ARRIBA ] = indice - n;
+        movimientos[ POS_ABAJO ] = indice + n ;
+    }
+    // Finalmente se calcula las posiciones de derecha e izquierda
+    if ( columna % n == 0 ){
+        movimientos[ POS_DERECHA ] = indice + 1;
+        movimientos[ POS_IZQUIERDA ] = POS_INVALIDA;
+    }else if ( columna % n == n - 1 ){
+        movimientos[ POS_DERECHA ] = POS_INVALIDA;
+        movimientos[ POS_IZQUIERDA ] = indice - 1;
+    }else{
+        movimientos[ POS_DERECHA ] = indice + 1;
+        movimientos[ POS_IZQUIERDA ] = indice - 1;
+    }
+}
+
 
 int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[], int cantidad_procesos, int superior[], int inferior[]){
     int indice;
