@@ -12,7 +12,7 @@ int POS_DERECHA = 2;
 int POS_IZQUIERDA = 3;
 int POS_INVALIDA = -1;
 
-int esPrimo(int numero){
+int es_primo(int numero){
     int conteoPrimo = 0, i;
     for(i=1;i<=numero;i++)
         if(numero%i==0)
@@ -20,12 +20,15 @@ int esPrimo(int numero){
     return (conteoPrimo==2?1:0);
 }
 
-void obtener_movimientos_matrix_c(int fila, int columna, int n, int indice, int movimientos[]){
+void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indice, int movimientos[] ){
+    // Se limpia vector de movimientos
+    int i;
+    for (i = 0; i < 4; ++i) movimientos[i] = 0;
     // Primero se calcula las posiciones de arriba y abajo
     if ( fila == 0 ){
         movimientos[ POS_ARRIBA ] = POS_INVALIDA;
         movimientos[ POS_ABAJO ] = indice + n ;
-    } else if (fila == n - 1 ){
+    } else if (fila == (n/p) - 1 ){
         movimientos[ POS_ARRIBA ] = indice - n;
         movimientos[ POS_ABAJO ] = POS_INVALIDA;
     }else{
@@ -46,27 +49,48 @@ void obtener_movimientos_matrix_c(int fila, int columna, int n, int indice, int 
 }
 
 
-int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[], int cantidad_procesos, int superior[], int inferior[]){
+int contar_primos_totales_M_y_por_columnas_y_matriz_C( int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[], int cantidad_procesos, int superior[], int inferior[], int parte_C[] ){
     int indice;
     int posResultado = 0;
     int acumuladorPrimos = 0;
 	int fila_actual = 0, columna_actual = 0;
 	int *vector_sub, *vector_inf;
-    int movimientos[4];
-    // Primero se limpia el vector de resultados    
-    for (indice = 0; indice < dimensionFila; ++indice) vectorConteoColumnas[indice] = 0;
+    int movimientos[4];        
+    for ( indice = 0; indice < dimensionFila; ++indice ) vectorConteoColumnas[indice] = 0;
     // Se recorre y se suman los primos por columna en el vector de resultados y el total de primos
-    for (indice = 0; indice < dimensionesParteM; ++ indice){
-        if (esPrimo(vectorParteM[indice])){
+    for ( indice = 0; indice < dimensionesParteM; ++ indice ){
+        if ( es_primo( vectorParteM[indice] ) ){
             ++acumuladorPrimos;
             ++vectorConteoColumnas[posResultado];           
         }
-        posResultado = (posResultado + 1)% dimensionFila;
+        posResultado = ( posResultado + 1 )% dimensionFila;
 		// Se calcula mi parte de C 
 		// Se calcula la fila actual
 		columna_actual = indice % dimensionFila;			
 		// Se calcula la columna actual
-		fila_actual = indice / dimensionFila ;											
+		fila_actual = indice / dimensionFila ;		
+        // Se calcula el vector de posiciones para los momientos de esta entrada en C	
+        obtener_movimientos_matriz_c(fila_actual, columna_actual, dimensionFila,cantidad_procesos, indice, movimientos);
+        // Se calcula la entrada C actual segun el vector de movimientos		
+        parte_C[indice] = vectorParteM[ indice ];						
+        // ---> Sumar arriba:
+        
+        if (movimientos[POS_ARRIBA] != POS_INVALIDA)
+            parte_C[indice] += vectorParteM[ movimientos[ POS_ARRIBA ] ];
+        else
+            parte_C[indice] += superior[ columna_actual ];
+        // ---> Sumar abajo:        
+        if ( movimientos[ POS_ABAJO ] != POS_INVALIDA ) 
+            parte_C[indice] += vectorParteM[ movimientos[ POS_ABAJO] ];   
+        else
+            parte_C[indice] += inferior[columna_actual];   
+        // ---> Sumar derecha:
+        if ( movimientos[ POS_DERECHA ] != POS_INVALIDA )
+            parte_C[indice] += vectorParteM[ movimientos[ POS_DERECHA ] ];        
+        // ---> Sumar izquierda:
+        if ( movimientos[ POS_IZQUIERDA ] != POS_INVALIDA )
+            parte_C[indice] += vectorParteM[ movimientos[ POS_IZQUIERDA ] ];
+        
     }
     return acumuladorPrimos;
 }
@@ -203,6 +227,7 @@ int main(int argc, char* argv[]) {
     printf("Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
     MPI_Barrier(MPI_COMM_WORLD);
 
+    // Se inicializan los vectores del Scatter variable
     int *pocisionesInicialesFaltanteSuperior = (int*)malloc(sizeof(int)*cantidad_procesos);
     int *pocisionesInicialesFaltanteInferior = (int*)malloc(sizeof(int)*cantidad_procesos);
     int *desplazamientoFaltanteSuperior = (int*)malloc(sizeof(int)*cantidad_procesos);
@@ -231,10 +256,12 @@ int main(int argc, char* argv[]) {
 
     // Necesito enviar a todos los procesos el valor de n, para que estos puedan reservar la memoria para sus partes de A y B.
     MPI_Bcast(&n, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+    
     // Necesito repartir las matrices A y B.
     // B ya que es de la que se ocupan las columnas se va a repartir completa entre todos los procesos.
     if(proceso_id != ROOT) B = (int*)malloc(sizeof(int)*(n*n));
     MPI_Bcast(B, (n*n), MPI_INT, ROOT, MPI_COMM_WORLD);
+    
     // A ya que solo se ocupan sus filas, se va a repartir sus filas entre los procesos, para así paralelisar el calculo de M.
     int numero_filas_parte_A = n/cantidad_procesos;
     int tamanno_parte_A = (numero_filas_parte_A)*n;
@@ -262,15 +289,28 @@ int main(int argc, char* argv[]) {
 	if(proceso_id == cantidad_procesos-1) MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
 	else MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
 
+    // Se inicializan los vectores de la parte de C de cada uno
+    parte_C = (int*)calloc(tamanno_parte_A, sizeof(int));
+
     // Se realiza el conteo total de primos en M por cada proceso y el conteo por Columna
     // Se preparan los vectores
     if(proceso_id == ROOT)  P = (int*)malloc(sizeof(int)*n); // proceso 0 crea P
     myP = (int*)malloc(sizeof(int)*n); // todos los procesos crea su P para acumular
     
     // Se llama al metodo que hace todo el conteo
-    myTp = contarPrimosTotalesMyPorColumnaM(parte_M,tamanno_parte_A,n,myP,cantidad_procesos,parte_faltante_superior,parte_faltante_inferior);    
-    //printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
+    myTp = contar_primos_totales_M_y_por_columnas_y_matriz_C(parte_M,tamanno_parte_A,n,myP,cantidad_procesos,parte_faltante_superior,parte_faltante_inferior,parte_C);    
     
+    // Pruebas de impresion de la matriz C
+    if (proceso_id == ROOT){
+        int h = 0;
+        printf("\n---------Parte C del proceso %d-------\n",proceso_id);
+        for (h = 0; h < tamanno_parte_A; ++h){
+            printf(" %d ",parte_C[h]);
+            if (h % n == n-1)
+                printf("\n");
+        }
+    }
+
     // Se realiza el reduce con operacion de suma de los primos que cada proceso conto hacia el proc ROOT
     MPI_Reduce(&myTp,&tp,1,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
     if(proceso_id == ROOT) fprintf(archivo, "\nEl total de primos de la Matriz M es %d\n",tp);
