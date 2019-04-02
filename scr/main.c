@@ -34,25 +34,7 @@ int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, 
 		// Se calcula la fila actual
 		columna_actual = indice % dimensionFila;			
 		// Se calcula la columna actual
-		fila_actual = indice / dimensionFila ;		
-		
-		// Se evaluan los casos		
-		// Estoy en la fila cero
-		if (fila_actual == 0){
-			// Se consigue el inferior que es la siguiente fila
-			vector_inf = &vectorParteM[dimensionFila];
-			vector_sub = superior;
-			
-		// Estoy en la fila (n/p) - 1	
-		}else if (fila_actual == dimensionFila - 1 ){
-			vector_inf = inferior;
-			vector_sub = &vectorParteM[ indice - dimensionFila - columna_actual ];
-			
-		}else{
-			vector_inf = &vectorParteM[ indice + dimensionFila - columna_actual ];
-			vector_sub = &vectorParteM[ indice - dimensionFila - columna_actual ];
-		}			
-					
+		fila_actual = indice / dimensionFila ;											
     }
     return acumuladorPrimos;
 }
