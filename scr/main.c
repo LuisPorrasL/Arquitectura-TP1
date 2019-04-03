@@ -165,16 +165,15 @@ void imprimir_primos_por_columna(int vector_primos[], int n, FILE *archivo){
 }
 
 int main(int argc, char* argv[]) {
-    int *A, *B, *M, *parte_A, *parte_M, *C, *parte_C, *parte_faltante_superior, *parte_faltante_inferior;
-    int n, cantidad_procesos, proceso_id;
-    int tp, myTp = 0; //  Acumulador para el conteo de primos en la matriz M
-    int* myP, *P; // Vectores para el conteo de los primos por fila
+    int *A, *B, *M, *parte_A, *parte_M, *C, *parte_C, *parte_faltante_superior, *parte_faltante_inferior, *myP, *P; // Vectores para el conteo de los primos por fila;
+    int n, cantidad_procesos, proceso_id, tp, myTp = 0; //  Acumulador para el conteo de primos en la matriz M
+    double comienzo_tiempo_total, fin_tiempo_total, comienzo_tiempo_neto, fin_tiempo_neto;
     FILE* archivo = stdout;
 
     MPI_Init(&argc, &argv); // Inicializacion del ambiente para MPI.
     MPI_Comm_size(MPI_COMM_WORLD, &cantidad_procesos); // Se le pide al comunicador MPI_COMM_WORLD que almacene en cantidad_procesos el numero de procesos de ese comunicador.
     MPI_Comm_rank(MPI_COMM_WORLD, &proceso_id); // Se le pide al comunicador MPI_COMM_WORL que devuelva en la variable proceso_id la identificacion del proceso "llamador".
-    
+
     // Se inicializan los vectores del Scatter variable
     int *pocisionesInicialesFaltanteSuperior = (int*)malloc(sizeof(int)*cantidad_procesos);
     int *pocisionesInicialesFaltanteInferior = (int*)malloc(sizeof(int)*cantidad_procesos);
@@ -182,8 +181,12 @@ int main(int argc, char* argv[]) {
     int *desplazamientoFaltanteInferior = (int*)malloc(sizeof(int)*cantidad_procesos);
 
     if(proceso_id == ROOT){
+        comienzo_tiempo_total = MPI_Wtime();
+
         // Se le pide al usuario el tamaño "n" de las matrices cuadradas A y B.
         n = preguntar_n(cantidad_procesos);
+
+        comienzo_tiempo_neto = MPI_Wtime();
 
         // Se crean (aloja memoria) las matrices A y B con tamaño nxn.
         A = (int*)malloc(sizeof(int)*(n*n));
@@ -251,11 +254,15 @@ int main(int argc, char* argv[]) {
 
     // El proceso raíz imprime: n, cantidad_procesos, tp, tiempo_total, tiempo_neto, A, B, M, P y C
     if(proceso_id == ROOT) {
+        fin_tiempo_neto = MPI_Wtime();
         fprintf(archivo, "\nEl \"n\" ingresado por el usuario fue: %d\n", n);
         fprintf(archivo, "\nLa cantidad de procesos ejecutados fue: %d\n", cantidad_procesos);
         fprintf(archivo, "\nEl total de primos de la matriz M es: %d\n", tp);
+        fin_tiempo_total = MPI_Wtime();
         //Imprimir tiempo_total
+        fprintf(archivo, "\nEl tiempo total de ejecucion del programa fue: %lf\n", (fin_tiempo_total-comienzo_tiempo_total));
         //Imprimir tiempo_neto
+        fprintf(archivo, "\nEl tiempo neto (despues de leer y antes de escribir) de ejecucion del programa fue: %lf\n", (fin_tiempo_neto-comienzo_tiempo_neto));
         imprimir_matriz_cuadrada_memoria_continua_por_filas(A, n, "A", archivo);
         imprimir_matriz_cuadrada_memoria_continua_por_filas(B, n, "B", archivo);
         imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, "M", archivo);
