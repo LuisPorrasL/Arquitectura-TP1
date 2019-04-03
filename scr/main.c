@@ -6,34 +6,95 @@
 
 // Constantes:
 int ROOT = 0;
+int POS_ARRIBA = 0;
+int POS_ABAJO = 1;
+int POS_DERECHA = 2;
+int POS_IZQUIERDA = 3;
+int POS_INVALIDA = -1;
 
-int esPrimo(int numero){
-    
-    int conteoPrimo = 0;
-    int i;
-    
+int es_primo(int numero){
+    int conteoPrimo = 0, i;
     for(i=1;i<=numero;i++)
         if(numero%i==0)
             conteoPrimo++;
     return (conteoPrimo==2?1:0);
 }
 
-int contarPrimosTotalesMyPorColumnaM(int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[]){
+void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indice, int movimientos[] ){
+    // Se limpia vector de movimientos
+    int i;
+    for (i = 0; i < 4; ++i) movimientos[i] = 0;
+    // Primero se calcula las posiciones de arriba y abajo
+    if ( fila == 0 ){
+        movimientos[ POS_ARRIBA ] = POS_INVALIDA;
+        movimientos[ POS_ABAJO ] = indice + n ;
+    } else if (fila == (n/p) - 1 ){
+        movimientos[ POS_ARRIBA ] = indice - n;
+        movimientos[ POS_ABAJO ] = POS_INVALIDA;
+    }else{
+        movimientos[ POS_ARRIBA ] = indice - n;
+        movimientos[ POS_ABAJO ] = indice + n ;
+    }
+    // Finalmente se calcula las posiciones de derecha e izquierda
+    if ( columna % n == 0 ){
+        movimientos[ POS_DERECHA ] = indice + 1;
+        movimientos[ POS_IZQUIERDA ] = POS_INVALIDA;
+    }else if ( columna % n == n - 1 ){
+        movimientos[ POS_DERECHA ] = POS_INVALIDA;
+        movimientos[ POS_IZQUIERDA ] = indice - 1;
+    }else{
+        movimientos[ POS_DERECHA ] = indice + 1;
+        movimientos[ POS_IZQUIERDA ] = indice - 1;
+    }
+}
+
+
+int contar_primos_totales_M_y_por_columnas_y_matriz_C( int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[], int cantidad_procesos, int superior[], int inferior[], int parte_C[] ){
     int indice;
     int posResultado = 0;
     int acumuladorPrimos = 0;
-    // Primero se limpia el vector de resultados    
-    for (indice = 0; indice < dimensionFila; ++indice) vectorConteoColumnas[indice] = 0;
+	int fila_actual = 0, columna_actual = 0;
+	int *vector_sub, *vector_inf;
+    int movimientos[4];        
+    for ( indice = 0; indice < dimensionFila; ++indice ) vectorConteoColumnas[indice] = 0;
     // Se recorre y se suman los primos por columna en el vector de resultados y el total de primos
-    for (indice = 0; indice < dimensionesParteM; ++ indice){
-        if (esPrimo(vectorParteM[indice])){
+    for ( indice = 0; indice < dimensionesParteM; ++ indice ){
+        if ( es_primo( vectorParteM[indice] ) ){
             ++acumuladorPrimos;
             ++vectorConteoColumnas[posResultado];           
         }
-        posResultado = (posResultado + 1)% dimensionFila;
+        posResultado = ( posResultado + 1 )% dimensionFila;
+		// Se calcula mi parte de C 
+		// Se calcula la fila actual
+		columna_actual = indice % dimensionFila;			
+		// Se calcula la columna actual
+		fila_actual = indice / dimensionFila ;		
+        // Se calcula el vector de posiciones para los momientos de esta entrada en C	
+        obtener_movimientos_matriz_c(fila_actual, columna_actual, dimensionFila,cantidad_procesos, indice, movimientos);
+        // Se calcula la entrada C actual segun el vector de movimientos		
+        parte_C[indice] = vectorParteM[ indice ];						
+        // ---> Sumar arriba:
+        
+        if (movimientos[POS_ARRIBA] != POS_INVALIDA)
+            parte_C[indice] += vectorParteM[ movimientos[ POS_ARRIBA ] ];
+        else
+            parte_C[indice] += superior[ columna_actual ];
+        // ---> Sumar abajo:        
+        if ( movimientos[ POS_ABAJO ] != POS_INVALIDA ) 
+            parte_C[indice] += vectorParteM[ movimientos[ POS_ABAJO] ];   
+        else
+            parte_C[indice] += inferior[columna_actual];   
+        // ---> Sumar derecha:
+        if ( movimientos[ POS_DERECHA ] != POS_INVALIDA )
+            parte_C[indice] += vectorParteM[ movimientos[ POS_DERECHA ] ];        
+        // ---> Sumar izquierda:
+        if ( movimientos[ POS_IZQUIERDA ] != POS_INVALIDA )
+            parte_C[indice] += vectorParteM[ movimientos[ POS_IZQUIERDA ] ];
+        
     }
     return acumuladorPrimos;
 }
+
 
 int preguntar_n(int cantidad_procesos){
     int n = 0;
@@ -51,11 +112,13 @@ int preguntar_n(int cantidad_procesos){
 void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio_minimo, int valor_aleatorio_maximo){
     time_t t;
     srand( (unsigned) time (&t));
-    for(int indice = 0; indice < tamanno; ++indice)vector[indice] = (int)rand() % (valor_aleatorio_maximo + 1 - valor_aleatorio_minimo) + valor_aleatorio_minimo;
+	int indice;
+    for(indice = 0; indice < tamanno; ++indice)vector[indice] = (int)rand() % (valor_aleatorio_maximo + 1 - valor_aleatorio_minimo) + valor_aleatorio_minimo;
 }
 
 void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int tamanno, FILE* archivo){
-    for(int indice = 0; indice < (tamanno*tamanno); ++indice){
+    int indice;
+	for( indice = 0; indice < (tamanno*tamanno); ++indice){
         if(indice%tamanno == 0) fprintf(archivo, "\n");
         fprintf(archivo,"%4d", matriz[indice]);
     }
@@ -63,7 +126,8 @@ void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int taman
 }
 
 void imprimir_filas_matriz_cuadrada_memoria_continua_por_filas(int filas[], int numero_filas, int tamanno, FILE* archivo){
-    for(int indice = 0; indice < (numero_filas*tamanno); ++indice){
+    int indice;
+	for(indice = 0; indice < (numero_filas*tamanno); ++indice){
         if(indice%tamanno == 0) fprintf(archivo, "\n");
         fprintf(archivo,"%4d", filas[indice]);
     }
@@ -71,24 +135,26 @@ void imprimir_filas_matriz_cuadrada_memoria_continua_por_filas(int filas[], int 
 }
 
 void obtener_fila_matriz_cuadrada_memoria_continual_por_fila(int matriz[], int indice_fila, int tamanno, int resultado[]){
-    for(int indice_matriz = indice_fila*tamanno, contador = 0; indice_matriz < (indice_fila+1)*tamanno; ++indice_matriz, ++contador) resultado[contador] = matriz[indice_matriz];
+    int indice_matriz, contador;
+	for(indice_matriz = indice_fila*tamanno, contador = 0; indice_matriz < (indice_fila+1)*tamanno; ++indice_matriz, ++contador) resultado[contador] = matriz[indice_matriz];
 }
 
 void obtener_columna_matriz_cuadrada_memoria_continual_por_fila(int matriz[], int indice_columna, int tamanno, int resultado[]){
-    for(int indice_matriz = indice_columna, contador = 0; indice_matriz < (tamanno*tamanno); indice_matriz+=tamanno, ++contador) resultado[contador] = matriz[indice_matriz];
+    int indice_matriz, contador;
+	for(indice_matriz = indice_columna, contador = 0; indice_matriz < (tamanno*tamanno); indice_matriz+=tamanno, ++contador) resultado[contador] = matriz[indice_matriz];
 }
 
 int calcular_producto_punto(int vector_a[], int vector_b[], int tamanno){
-    int resultado = 0;
-    for(int indice = 0; indice < tamanno; ++indice) resultado += vector_a[indice]*vector_b[indice];
+    int resultado = 0, indice;
+    for(indice = 0; indice < tamanno; ++indice) resultado += vector_a[indice]*vector_b[indice];
     return resultado;
 }
 
 void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int filas[], int matriz_columnas[], int numero_filas, int tamanno, int resultado_parcial[]){
-    int indice_fila, indice_columna, ultimo_indice_fila = -1;
+    int indice_fila, indice_columna, ultimo_indice_fila = -1, indice_resultado_parcial;
     int *tmp_fila = (int*)malloc(sizeof(int)*tamanno);
     int *tmp_col = (int*)malloc(sizeof(int)*tamanno);
-    for(int indice_resultado_parcial = 0; indice_resultado_parcial < (numero_filas*tamanno); ++indice_resultado_parcial){
+    for(indice_resultado_parcial = 0; indice_resultado_parcial < (numero_filas*tamanno); ++indice_resultado_parcial){
         indice_fila = indice_resultado_parcial/tamanno;
         indice_columna = indice_resultado_parcial%tamanno;
         if(ultimo_indice_fila != indice_fila){
@@ -103,31 +169,46 @@ void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int
     free(tmp_col);
 }
 
+
 void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[], int pocisionesInicialesFaltanteInferior[], 
     int desplazamientoFaltanteSuperior[], int desplazamientoFaltanteInferior[], int cantidad_procesos, int n){
-    
-        for(int indice_proceso = 0; indice_proceso < cantidad_procesos; ++indice_proceso){
-                if(indice_proceso == 0){
-                    pocisionesInicialesFaltanteSuperior[indice_proceso] = desplazamientoFaltanteSuperior[indice_proceso] = 0;
-                    if(cantidad_procesos > 1){
-                        pocisionesInicialesFaltanteInferior[indice_proceso] = (n*n)/cantidad_procesos+1;
-                        desplazamientoFaltanteInferior[indice_proceso] = n;
-                    }
-                    else pocisionesInicialesFaltanteInferior[indice_proceso] = desplazamientoFaltanteInferior[indice_proceso] = 0;
+		int indice_proceso, desplazamiento;
+        int filas_por_proceso = desplazamiento = n / cantidad_procesos;
+        for(indice_proceso = 0; indice_proceso < cantidad_procesos; ++indice_proceso){
+			if(indice_proceso == 0){
+				pocisionesInicialesFaltanteSuperior[indice_proceso] = desplazamientoFaltanteSuperior[indice_proceso] = 0;
+				if(cantidad_procesos > 1){
+					pocisionesInicialesFaltanteInferior[indice_proceso] = (n*n)/cantidad_procesos;
+					desplazamientoFaltanteInferior[indice_proceso] = n;
+				}
+				else pocisionesInicialesFaltanteInferior[indice_proceso] = desplazamientoFaltanteInferior[indice_proceso] = 0;
+			}
+			else if(indice_proceso == (cantidad_procesos-1)){
+				pocisionesInicialesFaltanteSuperior[indice_proceso] = (n*n) - ((n*n)/cantidad_procesos) - n;
+				desplazamientoFaltanteSuperior[indice_proceso] = n;
+				pocisionesInicialesFaltanteInferior[indice_proceso] = 0;
+				desplazamientoFaltanteInferior[indice_proceso] = 0;
+			}
+			else{
+				pocisionesInicialesFaltanteSuperior[indice_proceso] =  (desplazamiento - 1)*n;
+				desplazamientoFaltanteSuperior[indice_proceso] = n;
+				pocisionesInicialesFaltanteInferior[indice_proceso] =  (desplazamiento +filas_por_proceso)*n;
+				desplazamientoFaltanteInferior[indice_proceso] = n;
+                desplazamiento+=filas_por_proceso;
+			}                    
+        }
+}
 
-                }
-                else if(cantidad_procesos == cantidad_procesos-1){
-                    pocisionesInicialesFaltanteSuperior[indice_proceso] =   (n*n) - ((n*n)/cantidad_procesos) - n;
-                    desplazamientoFaltanteSuperior[indice_proceso] = n;
-                    pocisionesInicialesFaltanteInferior[indice_proceso] = desplazamientoFaltanteInferior[indice_proceso] = 0;
-                }
-                else{
-                    pocisionesInicialesFaltanteSuperior[indice_proceso] =   (n*n) - ((n*n)/cantidad_procesos) - n;
-                    desplazamientoFaltanteSuperior[indice_proceso] = n;
-                    pocisionesInicialesFaltanteInferior[indice_proceso] = (n*n)/cantidad_procesos+1;
-                    desplazamientoFaltanteInferior[indice_proceso] = n;
-                }
-            }
+void llenar_vector_ceros(int vector[], int tamanno){
+	int indice;
+    for(indice = 0; indice < tamanno; ++indice)vector[indice] = 0;
+}
+
+void imprimir_primos_por_columna(int vector_primos[], int n, FILE *archivo){
+	fprintf(archivo, "\n");
+	int y;
+	fprintf(archivo, "Los primos por columnas en M son:\n");
+	for (y = 0; y < n; ++ y) fprintf(archivo, "P[%d] = %d\n", y, vector_primos[y]);
 }
 
 int main(int argc, char* argv[]) {
@@ -146,6 +227,7 @@ int main(int argc, char* argv[]) {
     printf("Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
     MPI_Barrier(MPI_COMM_WORLD);
 
+    // Se inicializan los vectores del Scatter variable
     int *pocisionesInicialesFaltanteSuperior = (int*)malloc(sizeof(int)*cantidad_procesos);
     int *pocisionesInicialesFaltanteInferior = (int*)malloc(sizeof(int)*cantidad_procesos);
     int *desplazamientoFaltanteSuperior = (int*)malloc(sizeof(int)*cantidad_procesos);
@@ -174,28 +256,21 @@ int main(int argc, char* argv[]) {
 
     // Necesito enviar a todos los procesos el valor de n, para que estos puedan reservar la memoria para sus partes de A y B.
     MPI_Bcast(&n, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+    
     // Necesito repartir las matrices A y B.
     // B ya que es de la que se ocupan las columnas se va a repartir completa entre todos los procesos.
     if(proceso_id != ROOT) B = (int*)malloc(sizeof(int)*(n*n));
     MPI_Bcast(B, (n*n), MPI_INT, ROOT, MPI_COMM_WORLD);
+    
     // A ya que solo se ocupan sus filas, se va a repartir sus filas entre los procesos, para así paralelisar el calculo de M.
     int numero_filas_parte_A = n/cantidad_procesos;
     int tamanno_parte_A = (numero_filas_parte_A)*n;
     parte_A = (int*)malloc(sizeof(int)*tamanno_parte_A);
     MPI_Scatter(A, tamanno_parte_A, MPI_INT, parte_A, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-    /*printf("Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
-    imprimir_matriz_cuadrada_memoria_continua_por_filas(B, (n), stdout);
-    imprimir_filas_matriz_cuadrada_memoria_continua_por_filas(parte_A, numero_filas_parte_A, n, stdout);
-    MPI_Barrier(MPI_COMM_WORLD);*/
-
     // Necesito que todos los procesos calculen su parte de M
     parte_M = (int*)malloc(sizeof(int)*tamanno_parte_A);
     calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(parte_A, B, numero_filas_parte_A, n, parte_M);
-
-    /*printf("Proceso %d de %d en %s\n", proceso_id, cantidad_procesos, nombre_procesador); //Cada proceso despliega su identificacion y el nombre de la computadora en la que corre.
-    imprimir_filas_matriz_cuadrada_memoria_continua_por_filas(parte_M, numero_filas_parte_A, n, stdout);
-    MPI_Barrier(MPI_COMM_WORLD);*/
 
     // Necesito armar la matriz M recuperando las partes calculadas por cada proceso
     M = (int*)malloc(sizeof(int)*(n*n));
@@ -205,45 +280,47 @@ int main(int argc, char* argv[]) {
         imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, archivo);
     }
 
+    // Repartir M
+    parte_faltante_superior = (int*)calloc(n, sizeof(int));
+    parte_faltante_inferior = (int*)calloc(n, sizeof(int));
+
+    if(proceso_id == 0)MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
+	else MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+	if(proceso_id == cantidad_procesos-1) MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
+	else MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+
+    // Se inicializan los vectores de la parte de C de cada uno
+    parte_C = (int*)calloc(tamanno_parte_A, sizeof(int));
+
     // Se realiza el conteo total de primos en M por cada proceso y el conteo por Columna
-    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
     // Se preparan los vectores
     if(proceso_id == ROOT)  P = (int*)malloc(sizeof(int)*n); // proceso 0 crea P
     myP = (int*)malloc(sizeof(int)*n); // todos los procesos crea su P para acumular
+    
     // Se llama al metodo que hace todo el conteo
-    myTp = contarPrimosTotalesMyPorColumnaM(parte_M,tamanno_parte_A,n,myP);    
-    //printf("Soy el proceso %d y se que conte %d primos en M\n",proceso_id,myTp);    
+    myTp = contar_primos_totales_M_y_por_columnas_y_matriz_C(parte_M,tamanno_parte_A,n,myP,cantidad_procesos,parte_faltante_superior,parte_faltante_inferior,parte_C);    
+    
+    // Pruebas de impresion de la matriz C
+    if (proceso_id == ROOT){
+        int h = 0;
+        printf("\n---------Parte C del proceso %d-------\n",proceso_id);
+        for (h = 0; h < tamanno_parte_A; ++h){
+            printf(" %d ",parte_C[h]);
+            if (h % n == n-1)
+                printf("\n");
+        }
+    }
+
     // Se realiza el reduce con operacion de suma de los primos que cada proceso conto hacia el proc ROOT
     MPI_Reduce(&myTp,&tp,1,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
     if(proceso_id == ROOT) fprintf(archivo, "\nEl total de primos de la Matriz M es %d\n",tp);
-    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
+    
     // Se realiza el reduce de los resultados de las sumas
     MPI_Reduce(myP,P,n,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
 
     // Proceso cero imprime 
-    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego    
-    if (proceso_id == ROOT){
-        fprintf(archivo, "\n");
-        int y;
-        fprintf(archivo, "Los primos por columnas en M son:\n");
-        for (y = 0; y < n; ++ y)
-            fprintf(archivo, "P[%d] = %d\n", y, P[y]);
-    }
-
-    if(proceso_id == 0){
-        parte_faltante_superior = NULL;
-        if(cantidad_procesos < 2) parte_faltante_inferior = NULL;
-        else parte_faltante_inferior = (int*)malloc(sizeof(int)*n);
-    }
-    else if(proceso_id == cantidad_procesos - 1)parte_faltante_inferior = NULL;
-    else{
-        parte_faltante_superior = (int*)malloc(sizeof(int)*n);
-        parte_faltante_inferior = (int*)malloc(sizeof(int)*n);
-    }
-
-
-    MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
-    MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD); // ---> quitar luego
+	if (proceso_id == ROOT) imprimir_primos_por_columna(P, n, archivo);
 
     // Se libera memoria.
     free(B);
@@ -258,4 +335,3 @@ int main(int argc, char* argv[]) {
     MPI_Finalize(); // Se termina el ambiente MPI.
     return 0;
 }
-
