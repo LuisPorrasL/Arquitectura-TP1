@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include "mpi.h"
 
 
@@ -12,19 +13,26 @@ int POS_DERECHA = 2;
 int POS_IZQUIERDA = 3;
 int POS_INVALIDA = -1;
 
-int es_primo(int numero){
-    int conteoPrimo = 0, i;
-    for(i=1;i<=numero;i++)
-        if(numero%i==0)
-            conteoPrimo++;
-    return (conteoPrimo==2?1:0);
+int es_primo(int n){
+    int primo = 1, i;
+    int root_n = (int)( pow(n,0.5) + 1 );
+    for(i=2;i<root_n;i++)
+        if( n%i ==0 ){
+            primo = 0;
+            break;
+        }
+    if (n <= 1 ) primo = 0;
+    return primo;
 }
 
 void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indice, int movimientos[] ){
     // Primero se calcula las posiciones de arriba y abajo
     if ( fila == 0 ){
         movimientos[ POS_ARRIBA ] = POS_INVALIDA;
-        movimientos[ POS_ABAJO ] = indice + n ;
+        if ((n/p) == 1)
+            movimientos[ POS_ABAJO ] = POS_INVALIDA;
+        else
+            movimientos[ POS_ABAJO ] = indice + n ;
     } else if (fila == (n/p) - 1 ){
         movimientos[ POS_ARRIBA ] = indice - n;
         movimientos[ POS_ABAJO ] = POS_INVALIDA;
@@ -219,7 +227,7 @@ int main(int argc, char* argv[]) {
     calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(parte_A, B, numero_filas_parte_A, n, parte_M);
 
     // Necesito armar la matriz M recuperando las partes calculadas por cada proceso
-    M = (int*)malloc(sizeof(int)*(n*n));
+    if(proceso_id == ROOT) M = (int*)malloc(sizeof(int)*(n*n));
     MPI_Gather(parte_M, tamanno_parte_A, MPI_INT, M, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     // Repartir M
@@ -249,7 +257,7 @@ int main(int argc, char* argv[]) {
     MPI_Reduce(myP,P,n,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
 
     // Necesito armar la matriz C recuperando las partes calculadas por cada proceso
-    C = (int*)malloc(sizeof(int)*(n*n));
+    if(proceso_id == ROOT) C = (int*)malloc(sizeof(int)*(n*n));    
     MPI_Gather(parte_C, tamanno_parte_A, MPI_INT, C, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     // El proceso raíz imprime: n, cantidad_procesos, tp, tiempo_total, tiempo_neto, A, B, M, P y C
@@ -269,17 +277,21 @@ int main(int argc, char* argv[]) {
         imprimir_primos_por_columna(P, n, archivo);
         imprimir_matriz_cuadrada_memoria_continua_por_filas(C, n, "C", archivo);
 
-        // Solamente el proceso ROOT libera A y P
+        // Solamente el proceso ROOT libera A,P,C Y M
         free(A); 
         free(P);
+        free(C);
+        free(M);
     }
-
+    
     // Se libera memoria.
     free(B);
-    free(M);
     free(parte_A);
     free(parte_M);
     free(myP);
+    free(parte_C);
+    free(parte_faltante_superior);
+    free(parte_faltante_inferior);
 
     MPI_Finalize(); // Se termina el ambiente MPI.
     return 0;
