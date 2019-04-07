@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 #include "mpi.h"
 
 
@@ -13,6 +14,11 @@ int POS_DERECHA = 2;
 int POS_IZQUIERDA = 3;
 int POS_INVALIDA = -1;
 
+/**
+ * Recibe: <n>, un entero.
+ * Realiza: determina si <n> es un número primo o no.
+ * Retorna: 0 si <n> no es primo y 1 en caso contrario.
+ **/
 int es_primo(int n){
     int primo = 1, i;
     int root_n = (int)( pow(n,0.5) + 1 );
@@ -97,7 +103,11 @@ int contar_primos_totales_M_y_por_columnas_y_matriz_C( int vectorParteM[], int d
     return acumuladorPrimos;
 }
 
-
+/**
+ * Recibe: <cantidad_procesos> de tipo entero.
+ * Realiza: pide al usuario un valor "n", hasta que el usuario digita uno válido, es decir, un multiplo de <cantidad_procesos>.
+ * Retorna: un entero con el "n" que digitó el usuario.
+ **/
 int preguntar_n(int cantidad_procesos){
     int n = 0;
     while(!n){
@@ -111,6 +121,11 @@ int preguntar_n(int cantidad_procesos){
     return n;
 }
 
+/**
+ * Recibe:
+ * Realiza:
+ * Retorna:
+ **/
 void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio_minimo, int valor_aleatorio_maximo){
     time_t t;
     srand( (unsigned) time (&t));
@@ -118,16 +133,34 @@ void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio
     for(indice = 0; indice < tamanno; ++indice)vector[indice] = (int)rand() % (valor_aleatorio_maximo + 1 - valor_aleatorio_minimo) + valor_aleatorio_minimo;
 }
 
-void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int tamanno, char* nombre_matrix, FILE* archivo){
+/**
+ * Recibe:
+ * Realiza:
+ * Retorna:
+ **/
+void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int tamanno, char* nombre_matrix){
+    FILE* archivo = stdout;
+    int imprimir_archivo = tamanno > 100;
+    if(imprimir_archivo){
+        char nombre_archivo[6] = {0};
+        strcat(nombre_archivo, nombre_matrix);
+        archivo = fopen(strcat(nombre_archivo, ".txt"), "w");
+    }
     fprintf(archivo,"\n%s:\n", nombre_matrix);
     int indice;
 	for( indice = 0; indice < (tamanno*tamanno); ++indice){
         if(indice%tamanno == 0) fprintf(archivo, "\n");
-        fprintf(archivo,"%4d", matriz[indice]);
+        fprintf(archivo,"%6d", matriz[indice]);
     }
     fprintf(archivo, "\n\n");
+    if(imprimir_archivo) fclose(archivo);
 }
 
+/**
+ * Recibe:
+ * Realiza:
+ * Retorna:
+ **/
 void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int filas[], int matriz_columnas[], int numero_filas, int tamanno, int resultado_parcial[]){
     int indice_fila, indice_columna, indice_resultado_parcial, indice_fila_resultado_parcial;
     for(indice_resultado_parcial = 0; indice_resultado_parcial < (numero_filas*tamanno); ++indice_resultado_parcial){
@@ -137,6 +170,11 @@ void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int
     }
 }
 
+/**
+ * Recibe:
+ * Realiza:
+ * Retorna:
+ **/
 void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[], int pocisionesInicialesFaltanteInferior[], 
     int desplazamientoFaltanteSuperior[], int desplazamientoFaltanteInferior[], int cantidad_procesos, int n){
 		int indice_proceso, desplazamiento;
@@ -166,17 +204,29 @@ void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[],
         }
 }
 
-void imprimir_primos_por_columna(int vector_primos[], int n, FILE *archivo){
-	int y;
+/**
+ * Recibe:
+ * Realiza:
+ * Retorna:
+ **/
+void imprimir_primos_por_columna(int vector_primos[], int n){
+	FILE* archivo = stdout;
+    int y, imprimir_archivo = n > 100;
+    if(imprimir_archivo) archivo = fopen("P.txt", "w");
 	fprintf(archivo, "\nP:\n\n");
 	for (y = 0; y < n; ++ y) fprintf(archivo, "P[%d] = %d\n", y, vector_primos[y]);
+    if(imprimir_archivo)fclose(archivo);
 }
 
+/**
+ * Recibe:
+ * Realiza:
+ * Retorna:
+ **/
 int main(int argc, char* argv[]) {
     int *A, *B, *M, *parte_A, *parte_M, *C, *parte_C, *parte_faltante_superior, *parte_faltante_inferior, *myP, *P; // Vectores para el conteo de los primos por fila;
     int n, cantidad_procesos, proceso_id, tp, myTp = 0; //  Acumulador para el conteo de primos en la matriz M
     double comienzo_tiempo_total, fin_tiempo_total, comienzo_tiempo_neto, fin_tiempo_neto;
-    FILE* archivo = stdout;
 
     MPI_Init(&argc, &argv); // Inicializacion del ambiente para MPI.
     MPI_Comm_size(MPI_COMM_WORLD, &cantidad_procesos); // Se le pide al comunicador MPI_COMM_WORLD que almacene en cantidad_procesos el numero de procesos de ese comunicador.
@@ -263,19 +313,19 @@ int main(int argc, char* argv[]) {
     // El proceso raíz imprime: n, cantidad_procesos, tp, tiempo_total, tiempo_neto, A, B, M, P y C
     if(proceso_id == ROOT) {
         fin_tiempo_neto = MPI_Wtime();
-        fprintf(archivo, "\nEl \"n\" ingresado por el usuario fue: %d\n", n);
-        fprintf(archivo, "\nLa cantidad de procesos ejecutados fue: %d\n", cantidad_procesos);
-        fprintf(archivo, "\nEl total de primos de la matriz M es: %d\n", tp);
+        printf("\nEl \"n\" ingresado por el usuario fue: %d\n", n);
+        printf("\nLa cantidad de procesos ejecutados fue: %d\n", cantidad_procesos);
+        printf("\nEl total de primos de la matriz M es: %d\n", tp);
         fin_tiempo_total = MPI_Wtime();
         //Imprimir tiempo_total
-        fprintf(archivo, "\nEl tiempo total de ejecucion del programa fue: %lf\n", (fin_tiempo_total-comienzo_tiempo_total));
+        printf("\nEl tiempo total de ejecucion del programa fue: %lf\n", (fin_tiempo_total-comienzo_tiempo_total));
         //Imprimir tiempo_neto
-        fprintf(archivo, "\nEl tiempo neto (despues de leer y antes de escribir) de ejecucion del programa fue: %lf\n", (fin_tiempo_neto-comienzo_tiempo_neto));
-        imprimir_matriz_cuadrada_memoria_continua_por_filas(A, n, "A", archivo);
-        imprimir_matriz_cuadrada_memoria_continua_por_filas(B, n, "B", archivo);
-        imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, "M", archivo);
-        imprimir_primos_por_columna(P, n, archivo);
-        imprimir_matriz_cuadrada_memoria_continua_por_filas(C, n, "C", archivo);
+        printf("\nEl tiempo neto (despues de leer y antes de escribir) de ejecucion del programa fue: %lf\n", (fin_tiempo_neto-comienzo_tiempo_neto));
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(A, n, "A");
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(B, n, "B");
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, "M");
+        imprimir_primos_por_columna(P, n);
+        imprimir_matriz_cuadrada_memoria_continua_por_filas(C, n, "C");
 
         // Solamente el proceso ROOT libera A,P,C Y M
         free(A); 
