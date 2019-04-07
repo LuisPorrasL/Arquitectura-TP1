@@ -29,7 +29,10 @@ void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indi
     // Primero se calcula las posiciones de arriba y abajo
     if ( fila == 0 ){
         movimientos[ POS_ARRIBA ] = POS_INVALIDA;
-        movimientos[ POS_ABAJO ] = indice + n ;
+        if ((n/p) == 1)
+            movimientos[ POS_ABAJO ] = POS_INVALIDA;
+        else
+            movimientos[ POS_ABAJO ] = indice + n ;
     } else if (fila == (n/p) - 1 ){
         movimientos[ POS_ARRIBA ] = indice - n;
         movimientos[ POS_ABAJO ] = POS_INVALIDA;
@@ -280,7 +283,7 @@ int main(int argc, char* argv[]) {
         free(C);
         free(M);
     }
-
+    
     // Se libera memoria.
     free(B);
     free(parte_A);
