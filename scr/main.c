@@ -219,7 +219,7 @@ int main(int argc, char* argv[]) {
     calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(parte_A, B, numero_filas_parte_A, n, parte_M);
 
     // Necesito armar la matriz M recuperando las partes calculadas por cada proceso
-    M = (int*)malloc(sizeof(int)*(n*n));
+    if(proceso_id == ROOT) M = (int*)malloc(sizeof(int)*(n*n));
     MPI_Gather(parte_M, tamanno_parte_A, MPI_INT, M, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     // Repartir M
@@ -249,7 +249,7 @@ int main(int argc, char* argv[]) {
     MPI_Reduce(myP,P,n,MPI_INT,MPI_SUM,ROOT,MPI_COMM_WORLD);
 
     // Necesito armar la matriz C recuperando las partes calculadas por cada proceso
-    C = (int*)malloc(sizeof(int)*(n*n));
+    if(proceso_id == ROOT) C = (int*)malloc(sizeof(int)*(n*n));    
     MPI_Gather(parte_C, tamanno_parte_A, MPI_INT, C, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     // El proceso raíz imprime: n, cantidad_procesos, tp, tiempo_total, tiempo_neto, A, B, M, P y C
@@ -269,17 +269,21 @@ int main(int argc, char* argv[]) {
         imprimir_primos_por_columna(P, n, archivo);
         imprimir_matriz_cuadrada_memoria_continua_por_filas(C, n, "C", archivo);
 
-        // Solamente el proceso ROOT libera A y P
+        // Solamente el proceso ROOT libera A,P,C Y M
         free(A); 
         free(P);
+        free(C);
+        free(M);
     }
 
     // Se libera memoria.
     free(B);
-    free(M);
     free(parte_A);
     free(parte_M);
     free(myP);
+    free(parte_C);
+    free(parte_faltante_superior);
+    free(parte_faltante_inferior);
 
     MPI_Finalize(); // Se termina el ambiente MPI.
     return 0;
