@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include "mpi.h"
 
 
@@ -12,12 +13,16 @@ int POS_DERECHA = 2;
 int POS_IZQUIERDA = 3;
 int POS_INVALIDA = -1;
 
-int es_primo(int numero){
-    int conteoPrimo = 0, i;
-    for(i=1;i<=numero;i++)
-        if(numero%i==0)
-            conteoPrimo++;
-    return (conteoPrimo==2?1:0);
+int es_primo(int n){
+    int primo = 1, i;
+    int root_n = (int)( pow(n,0.5) + 1 );
+    for(i=2;i<root_n;i++)
+        if( n%i ==0 ){
+            primo = 0;
+            break;
+        }
+    if (n <= 1 ) primo = 0;
+    return primo;
 }
 
 void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indice, int movimientos[] ){
