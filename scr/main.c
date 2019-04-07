@@ -316,17 +316,16 @@ int main(int argc, char* argv[]) {
         printf("\nEl \"n\" ingresado por el usuario fue: %d\n", n);
         printf("\nLa cantidad de procesos ejecutados fue: %d\n", cantidad_procesos);
         printf("\nEl total de primos de la matriz M es: %d\n", tp);
-        fin_tiempo_total = MPI_Wtime();
-        //Imprimir tiempo_total
-        printf("\nEl tiempo total de ejecucion del programa fue: %lf\n", (fin_tiempo_total-comienzo_tiempo_total));
-        //Imprimir tiempo_neto
-        printf("\nEl tiempo neto (despues de leer y antes de escribir) de ejecucion del programa fue: %lf\n", (fin_tiempo_neto-comienzo_tiempo_neto));
         imprimir_matriz_cuadrada_memoria_continua_por_filas(A, n, "A");
         imprimir_matriz_cuadrada_memoria_continua_por_filas(B, n, "B");
         imprimir_matriz_cuadrada_memoria_continua_por_filas(M, n, "M");
         imprimir_primos_por_columna(P, n);
         imprimir_matriz_cuadrada_memoria_continua_por_filas(C, n, "C");
-
+        fin_tiempo_total = MPI_Wtime();
+        //Imprimir tiempo_total
+        printf("\nEl tiempo total de ejecucion del programa fue: %lf\n", (fin_tiempo_total-comienzo_tiempo_total));
+        //Imprimir tiempo_neto
+        printf("\nEl tiempo neto (despues de leer y antes de escribir) de ejecucion del programa fue: %lf\n", (fin_tiempo_neto-comienzo_tiempo_neto));
         // Solamente el proceso ROOT libera A,P,C Y M
         free(A); 
         free(P);
