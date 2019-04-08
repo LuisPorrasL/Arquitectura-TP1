@@ -6,6 +6,12 @@
 #include "mpi.h"
 
 
+/*
+Estudiantes:
+    Luis Porras Ledezma B65477
+    Jose Pablo Ramírez Méndez B65728
+*/
+
 // Constantes:
 int ROOT = 0;
 int POS_ARRIBA = 0;
@@ -31,6 +37,17 @@ int es_primo(int n){
     return primo;
 }
 
+/**
+ * Recibe: 
+ *      <fila>, fila actual por la que se esta recorriendo el arreglo 
+ *      <columna>,columna actual por la que se esta recorriendo el arreglo
+ *      <n>, el valor ingresado por el usuario para crear la matriz 
+ *      <p>, la cantiadad de procesos creada
+ *      <indice>, el valor de la posicion actual de la mattriz como vector de una dimension
+ *      <movimientos>, vector de 4 posiciones que almacena la posicion de ARRIBA,ABAJO,DERECHA E IZQUIERDA validas para la posicion del indice actual.
+ * Realiza: Permite obtener los movimientos para obtener el valor de una entrada de la matriz C segun la posición establecida por <fila> y <columna>
+ * Retorna: Este metodo no retorna ningun valor, ya que modifica los valores a través del puntero del vector de <movimientos>
+ **/
 void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indice, int movimientos[] ){
     // Primero se calcula las posiciones de arriba y abajo
     if ( fila == 0 ){
@@ -59,7 +76,11 @@ void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indi
     }
 }
 
-
+/**
+ * Recibe: 
+ * Realiza: 
+ * Retorna: 
+ **/
 int contar_primos_totales_M_y_por_columnas_y_matriz_C( int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[], int cantidad_procesos, int superior[], int inferior[], int parte_C[] ){
     int indice, posResultado = 0, acumuladorPrimos = 0, fila_actual = 0, columna_actual = 0;
     int *vector_sub, *vector_inf;
