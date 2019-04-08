@@ -280,14 +280,19 @@ int main(int argc, char* argv[]) {
     if(proceso_id == ROOT) M = (int*)malloc(sizeof(int)*(n*n));
     MPI_Gather(parte_M, tamanno_parte_A, MPI_INT, M, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-    // Repartir M
+    // Repartir M con las partes faltantes para el calculo parcial de C
     parte_faltante_superior = (int*)calloc(n, sizeof(int));
     parte_faltante_inferior = (int*)calloc(n, sizeof(int));
 
-    if(proceso_id == 0)MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
-	else MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
-	if(proceso_id == cantidad_procesos-1) MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
-	else MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+    if(proceso_id == 0)
+        MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
+	else 
+        MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+	
+    if(proceso_id == cantidad_procesos-1) 
+        MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
+	else 
+        MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     // Se inicializan los vectores de la parte de C de cada uno
     parte_C = (int*)calloc(tamanno_parte_A, sizeof(int));
