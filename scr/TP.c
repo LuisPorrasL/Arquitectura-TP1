@@ -78,8 +78,16 @@ void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indi
 
 /**
  * Recibe: 
- * Realiza: 
- * Retorna: 
+ *      <vectorParteM>, puntero al vector que contiene la direccion de memoria de la parte de M calculada por el proceso
+ *      <dimencionesParteM>, cantidad de elementos asignados segun la reparticion en M para este proceso
+ *      <dimensionFila>, valor n digitado por el usuario para crear las matrices
+ *      <vectorConteoColumnas>, puntero al vector de dimension <dimensionFila> para contar la cantidad de primos por columna en la parte M
+ *      <cantidad_procesos>, valor entero de la cantidad de procesos creada obtenida por el llamado de MPI
+ *      <superior>, puntero al vector de la parte superior de M para el proceso logre calcular su parte de C correspondiente
+ *      <inferior>, puntero al vector de la parte inferior de M para el proceso logre calcular su parte de C correspondiente
+ *      <parte_C>, puntero a un vector de dimensiones <dimencionesParteM> usado para almacenar la parte C correspondiente a un proceso
+ * Realiza: Realiza el conteo de primos parcial totales en M y por columnas en M, Tambien calcula la parteC correspondiente a un proceso
+ * Retorna: La cantidad totoal parcial de enteros en <vectorParteM> correspondiente
  **/
 int contar_primos_totales_M_y_por_columnas_y_matriz_C( int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[], int cantidad_procesos, int superior[], int inferior[], int parte_C[] ){
     int indice, posResultado = 0, acumuladorPrimos = 0, fila_actual = 0, columna_actual = 0;
