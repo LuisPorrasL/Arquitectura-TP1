@@ -6,6 +6,12 @@
 #include "mpi.h"
 
 
+/*
+Estudiantes:
+    Luis Porras Ledezma B65477
+    Jose Pablo Ramírez Méndez B65728
+*/
+
 // Constantes:
 int ROOT = 0;
 int POS_ARRIBA = 0;
@@ -31,6 +37,17 @@ int es_primo(int n){
     return primo;
 }
 
+/**
+ * Recibe: 
+ *      <fila>, fila actual por la que se esta recorriendo el arreglo 
+ *      <columna>,columna actual por la que se esta recorriendo el arreglo
+ *      <n>, el valor ingresado por el usuario para crear la matriz 
+ *      <p>, la cantiadad de procesos creada
+ *      <indice>, el valor de la posicion actual de la mattriz como vector de una dimension
+ *      <movimientos>, vector de 4 posiciones que almacena la posicion de ARRIBA,ABAJO,DERECHA E IZQUIERDA validas para la posicion del indice actual.
+ * Realiza: Permite obtener los movimientos para obtener el valor de una entrada de la matriz C segun la posición establecida por <fila> y <columna>
+ * Retorna: Este metodo no retorna ningun valor, ya que modifica los valores a través del puntero del vector de <movimientos>
+ **/
 void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indice, int movimientos[] ){
     // Primero se calcula las posiciones de arriba y abajo
     if ( fila == 0 ){
@@ -59,7 +76,19 @@ void obtener_movimientos_matriz_c( int fila, int columna, int n, int p, int indi
     }
 }
 
-
+/**
+ * Recibe: 
+ *      <vectorParteM>, puntero al vector que contiene la direccion de memoria de la parte de M calculada por el proceso
+ *      <dimencionesParteM>, cantidad de elementos asignados segun la reparticion en M para este proceso
+ *      <dimensionFila>, valor n digitado por el usuario para crear las matrices
+ *      <vectorConteoColumnas>, puntero al vector de dimension <dimensionFila> para contar la cantidad de primos por columna en la parte M
+ *      <cantidad_procesos>, valor entero de la cantidad de procesos creada obtenida por el llamado de MPI
+ *      <superior>, puntero al vector de la parte superior de M para el proceso logre calcular su parte de C correspondiente
+ *      <inferior>, puntero al vector de la parte inferior de M para el proceso logre calcular su parte de C correspondiente
+ *      <parte_C>, puntero a un vector de dimensiones <dimencionesParteM> usado para almacenar la parte C correspondiente a un proceso
+ * Realiza: Realiza el conteo de primos parcial totales en M y por columnas en M, Tambien calcula la parteC correspondiente a un proceso
+ * Retorna: La cantidad totoal parcial de enteros en <vectorParteM> correspondiente
+ **/
 int contar_primos_totales_M_y_por_columnas_y_matriz_C( int vectorParteM[], int dimensionesParteM, int dimensionFila, int vectorConteoColumnas[], int cantidad_procesos, int superior[], int inferior[], int parte_C[] ){
     int indice, posResultado = 0, acumuladorPrimos = 0, fila_actual = 0, columna_actual = 0;
     int *vector_sub, *vector_inf;
@@ -122,9 +151,12 @@ int preguntar_n(int cantidad_procesos){
 }
 
 /**
- * Recibe:
- * Realiza:
- * Retorna:
+ * Recibe:  <vector> puntero a un arreglo de enteros.
+ *          <tamanno> entero con el tamaño de <vector>.
+ *          <valor_aleatorio_minimo> entero con el valor aleatorio minimo para <vector>.
+ *          <valor_aleatorio_maximo> entero con el valor aleatorio maximo para <vector>.
+ * Realiza: llena <vector> con valores entre <valor_aleatorio_minimo> y <valor_aleatorio_maximo>.
+ * Retorna: nada.
  **/
 void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio_minimo, int valor_aleatorio_maximo){
     time_t t;
@@ -134,13 +166,15 @@ void llenar_vector_aleatoreamente(int vector[], int tamanno, int valor_aleatorio
 }
 
 /**
- * Recibe:
- * Realiza:
- * Retorna:
+ * Recibe:  <matriz> de tipo entero.
+ *          <tamanno> de tipo entero, con el tamaño de la fila o columna (pues es cuadrada) de la matriz.
+ *          <nombre_matrix> de tipo char*, con el nombre de la matriz a imprimir.
+ * Realiza: imprime <matriz> con el nombre <nombre_matrix> en pantalla si <tamanno> <= a 100 y en un archivo con nombre <nombre_matrix>.txt.
+ * Retorna: nada.
  **/
 void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int tamanno, char* nombre_matrix){
     FILE* archivo = stdout;
-    int imprimir_archivo = tamanno > 100;
+    int imprimir_archivo = tamanno > 30;
     if(imprimir_archivo){
         char nombre_archivo[6] = {0};
         strcat(nombre_archivo, nombre_matrix);
@@ -157,9 +191,13 @@ void imprimir_matriz_cuadrada_memoria_continua_por_filas(int matriz[], int taman
 }
 
 /**
- * Recibe:
- * Realiza:
- * Retorna:
+ * Recibe:  <filas> puntero a un arreglo de enteros.
+ *          <matriz_columnas> puntero a una matriz cuadrada de enteros en memoria continua, con las columnas a multiplicar.
+ *          <numero_filas> de tipo entero, con la cantidada de filas en <filas>.
+ *          <tamanno> de tipo entero con el tamaño de las filas de <filas>.
+ *          <resultado_parcial> puntero a un arreglo de enteros, en el que se va a guardar el resultado del producto parcial de matrices.
+ * Realiza: calcula el producto matriz parcial, entre <filas> y las columnas de <matriz_columnas>. 
+ * Retorna: nada.
  **/
 void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int filas[], int matriz_columnas[], int numero_filas, int tamanno, int resultado_parcial[]){
     int indice_fila, indice_columna, indice_resultado_parcial, indice_fila_resultado_parcial;
@@ -171,9 +209,15 @@ void calcular_producto_parcial_matrices_cuadradas_memoria_continua_por_filas(int
 }
 
 /**
- * Recibe:
- * Realiza:
- * Retorna:
+ * Recibe:  <pocisionesInicialesFaltanteSuperior> puntero a un arreglo de enteros, donde se van a guardar las posiciones para el scatter variable del faltante superior.
+ *          <pocisionesInicialesFaltanteInferior> puntero a un arreglo de enteros, donde se van a guardar las posiciones para el scatter variable del faltante inferior.
+ *          <desplazamientoFaltanteSuperior> puntero a un arreglo de enteros, donde se van a guardar los desplazamientos para el scatter variable del faltante superior.
+ *          <desplazamientoFaltanteInferior> puntero a un arreglo de enteros, donde se van a guardar los desplazamientos para el scatter variable del faltante inferior.
+ *          <cantidad_procesos> entero con la cantidad de procesos ejecutandose.
+ *          <n> entero indicado por el usuario, representa el tamaño de todos los arreglos recibidos.
+ * Realiza: crea los dos arreglos necesarios para realizar un MPI_Scatter (el de posiciones y el de desplazamientos), 
+ *  para los 2 scartters variables que se van a realizar para repartir las filas que le faltan a los procesos para calcular C.
+ * Retorna: nada.
  **/
 void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[], int pocisionesInicialesFaltanteInferior[], 
     int desplazamientoFaltanteSuperior[], int desplazamientoFaltanteInferior[], int cantidad_procesos, int n){
@@ -205,13 +249,13 @@ void calcular_reparticion_faltantes_M(int pocisionesInicialesFaltanteSuperior[],
 }
 
 /**
- * Recibe:
- * Realiza:
- * Retorna:
+ * Recibe:  <vector_primos> puntero del arreglo de enteros a imprimir. <n> de tipo entero con el tamaño del arreglo <vector_primos>.
+ * Realiza: imprimer <vector_primos> como una columna, en pantalla si n <= 30, en un archivo llamado "P.txt" en caso contrario.
+ * Retorna: nada.
  **/
 void imprimir_primos_por_columna(int vector_primos[], int n){
 	FILE* archivo = stdout;
-    int y, imprimir_archivo = n > 100;
+    int y, imprimir_archivo = n > 30;
     if(imprimir_archivo) archivo = fopen("P.txt", "w");
 	fprintf(archivo, "\nP:\n\n");
 	for (y = 0; y < n; ++ y) fprintf(archivo, "P[%d] = %d\n", y, vector_primos[y]);
@@ -219,9 +263,9 @@ void imprimir_primos_por_columna(int vector_primos[], int n){
 }
 
 /**
- * Recibe:
- * Realiza:
- * Retorna:
+ * Recibe: <argc> un entero con la cantidad de argumentos en <argv>. <argv> un puntero a un arreglo de char* con los argumentos con los que se llamó al programa.
+ * Realiza: el calculo en paralelo de M, P, y C.
+ * Retorna: un entero con el resultado de la ejecución del programa, ok = 0, not ok = !0.
  **/
 int main(int argc, char* argv[]) {
     int *A, *B, *M, *parte_A, *parte_M, *C, *parte_C, *parte_faltante_superior, *parte_faltante_inferior, *myP, *P; // Vectores para el conteo de los primos por fila;
@@ -280,14 +324,21 @@ int main(int argc, char* argv[]) {
     if(proceso_id == ROOT) M = (int*)malloc(sizeof(int)*(n*n));
     MPI_Gather(parte_M, tamanno_parte_A, MPI_INT, M, tamanno_parte_A, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-    // Repartir M
+    // Repartir M con las partes faltantes para el calculo parcial de C
     parte_faltante_superior = (int*)calloc(n, sizeof(int));
     parte_faltante_inferior = (int*)calloc(n, sizeof(int));
 
-    if(proceso_id == 0)MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
-	else MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
-	if(proceso_id == cantidad_procesos-1) MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
-	else MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+    // Se deben realizar 2 scatters variables ya que se decidió dar a cada proceso solo la fila superior y la fila inferior que necesitan para calcular C, sin repartir nuevamente lo que estos ya conocen de M (i.e. el grupo de filas que ellos calcularon de M).
+    // Se reparte a los procesos la fila superior del grupo de filas de M que ellos (los procesos) ya conocen, en caso del primer proceso se le da un arreglo de tamaño 0.
+    if(proceso_id == 0)
+        MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
+	else 
+        MPI_Scatterv(M, desplazamientoFaltanteSuperior, pocisionesInicialesFaltanteSuperior, MPI_INT, parte_faltante_superior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
+    // Se reparte a los procesos la fila inferior del grupo de filas de M que ellos (los procesos) ya conocen, en caso del ultimo proceso se le da un arreglo de tamaño 0.
+    if(proceso_id == cantidad_procesos-1) 
+        MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
+	else 
+        MPI_Scatterv(M, desplazamientoFaltanteInferior, pocisionesInicialesFaltanteInferior, MPI_INT, parte_faltante_inferior, n, MPI_INT, ROOT, MPI_COMM_WORLD);
 
     // Se inicializan los vectores de la parte de C de cada uno
     parte_C = (int*)calloc(tamanno_parte_A, sizeof(int));
